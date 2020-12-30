@@ -107,7 +107,11 @@ namespace Game_Server
                 while (lastComm.ElapsedMilliseconds < 10000)
                 {
                     if (!stream.DataAvailable)
+                    {
+                        //slowdown thread
+                        Thread.Sleep(125);
                         continue;
+                    }
                     inputBuffer = stream.Read(buffer, 0, buffer.Length);
                     lastComm.Restart();
 
