@@ -102,41 +102,56 @@ namespace Game_Server
                 {
                     if (!stream.DataAvailable)
                         continue;
-
                     inputBuffer = stream.Read(buffer, 0, buffer.Length);
-
                     lastComm.Restart();
 
-                    string hex = BitConverter.ToString(buffer);
                     string userData = Encoding.ASCII.GetString(buffer, 0, inputBuffer);
                     Console.WriteLine("{1}: Received: {0}", userData, Thread.CurrentThread.ManagedThreadId);
 
                     string serverResponse = "";
-
                     string[] parseMsg = userData.Split(",");
-                    if (parseMsg[0].Contains("COUNT"))
+                    string msgKey = parseMsg[0];
+                    
+                    switch(msgKey)
                     {
-                        Console.WriteLine("Client {0} requested server Information", clientID);
-                        serverResponse = "Number of Connections: " + NumberOfConnections() + "\n";
-                    }
-                    else if (parseMsg[0].Contains("BOMBS_GRID"))
-                    {
-                        Console.WriteLine("Client {0} Sent a Bomb Grid and Tile Click", clientID);
-                        serverResponse = "Bomb Grid Stored!\n";
-                        bombGrid.Add(clientID, userData); //store unparsed version to send back to a client who asks
-                    }
-                    else if (parseMsg[0].Contains("GET_BOMBS_GRID"))
-                    {
-                        string gameNum = (parseMsg.Length > 1) ? parseMsg[1] : "NA";
-                        Console.WriteLine("Client {0} Requested a Bomb Grid from Client {1}", clientID, gameNum);
-                        serverResponse = bombGrid[int.Parse(gameNum)];
-                        bombGrid.Add(clientID, userData); //store unparsed version to send back to a client who asks
-                    }
-                    else
-                    {
-                        serverResponse += "Hey Device! Your Client ID is: " + clientID.ToString() + "\n";
-                    }
+                        case "MAKE_GAME":
 
+                            Console.WriteLine("Client {0} wants to start a Game", clientID);
+                            serverResponse = "WAIT_FOR_PLAYER2"; //send to player who asked
+
+                            break;
+                        case "JOIN_GAME":
+
+                            Console.WriteLine("Client {0} wants to Join a Game", clientID);
+                            serverResponse = "WAIT_FOR_GRID"; //Send to both i guess
+
+                            break;
+                        case "TILE_CLICKED":
+
+                            Console.WriteLine("Client {0} clicked a Tile: {1}", clientID, userData);
+                            serverResponse = userData; //Send to other player
+
+                            break;
+                        case "BOMBS_GRID":
+                            
+                            Console.WriteLine("Client {0} Sent a Bomb Grid and Tile Click", clientID);
+                            serverResponse = userData; // Send to other player
+                            //bombGrid.Add(clientID, userData); //store unparsed version to send back to a client who asks
+
+                            break;
+                        case "PING":
+
+                            //DO nothing, pinging to keep connection alive
+                            Console.WriteLine("Client {0} Pinged", clientID);
+
+                            break;
+                        default:
+
+                            serverResponse = "Hey Device! Your Client ID is: " + clientID.ToString() + "\n";
+
+                            break;
+
+                    }
 
                     Byte[] serverResponseBytes = System.Text.Encoding.ASCII.GetBytes(serverResponse);
                     stream.Write(serverResponseBytes, 0, serverResponseBytes.Length);
