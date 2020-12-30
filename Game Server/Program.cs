@@ -9,7 +9,7 @@ namespace Game_Server
         public const string ipAddr = "34.94.134.79";
         public const int port = 11111;
 
-        public const bool thisTheServer = false;
+        public static bool thisTheServer = false;
         static void Main(string[] args)
         {
             if (args.Length == 1)
