@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -12,8 +13,14 @@ namespace Game_Server
     {
         TcpListener server = null;
         public static Dictionary<int, NetworkStream> clientsList = new Dictionary<int, NetworkStream>();
+        
+        public static Dictionary<int, List<int>> gameClientsList = new Dictionary<int, List<int>>();
+        public static Dictionary<int, int> clientGameList = new Dictionary<int, int>();
+
+        public static Dictionary<int, int> gameTurnList = new Dictionary<int, int>();
+
         public const int maxConnections = 10; //randomly picked
-        public static Dictionary<int, string> bombGrid = new Dictionary<int, string>();
+        public const int maxGames = 10; //randomly picked
 
         public Server(string ip, int port)
         {
@@ -83,7 +90,6 @@ namespace Game_Server
                 {
                     clientsList.Add(ii, stream);
                     clientID = ii;
-
                     break;
                 }
             }
@@ -111,32 +117,122 @@ namespace Game_Server
                     string serverResponse = "";
                     string[] parseMsg = userData.Split(",");
                     string msgKey = parseMsg[0];
-                    
-                    switch(msgKey)
+                    int gameId = -1;
+
+
+                    switch (msgKey)
                     {
                         case "MAKE_GAME":
-
                             Console.WriteLine("Client {0} wants to start a Game", clientID);
-                            serverResponse = "WAIT_FOR_PLAYER2"; //send to player who asked
 
+                            for (int newGameId = 0; newGameId < maxGames; newGameId++)
+                            {
+                                if (!gameClientsList.ContainsKey(newGameId))
+                                {
+                                    gameClientsList.Add(newGameId, new List<int>());
+                                    gameClientsList[newGameId].Add(clientID);
+                                    if (!clientGameList.ContainsKey(clientID))
+                                    {
+                                        clientGameList.Add(clientID, newGameId);
+                                    }
+                                    else
+                                    {
+                                        clientGameList[clientID] = newGameId;
+                                    }
+
+                                    if (gameTurnList.ContainsKey(newGameId))
+                                        gameTurnList.Remove(newGameId);
+                                    gameTurnList[newGameId] = 0; //its players 0s turn
+
+                                    break;
+                                }
+                            }
+                            //find lowest availble gameIDnot used
+                            //add it to the dict
+                            //add this client to player list
+
+                            //serverResponse = "MADE_GAME," + clientGameList[clientID]; //send to player who asked
+                            serverResponse = string.Join("," , "JOINED_GAME" , clientGameList[clientID]); //send to player who asked
+
+                            SendServerReponse(serverResponse, clientID);
+
+                            break;
+                        case "GET_GAMES":
+
+                            Console.WriteLine("Client {0} wants a List of the Games", clientID);
+                            
+                            serverResponse = "GAME_LIST"; //Send to both i guess
+
+                            foreach (KeyValuePair<int, List<int>> game in gameClientsList)
+                            {
+                                serverResponse = string.Join(",", serverResponse, game.Key.ToString(), game.Value.Count.ToString());
+                            }
+
+                            SendServerReponse(serverResponse, clientID);
+                            
                             break;
                         case "JOIN_GAME":
 
                             Console.WriteLine("Client {0} wants to Join a Game", clientID);
-                            serverResponse = "WAIT_FOR_GRID"; //Send to both i guess
+
+                            int gameIdToJoin = int.Parse(parseMsg[1]);
+
+                            gameClientsList[gameIdToJoin].Add(clientID);
+                            if (!clientGameList.ContainsKey(clientID))
+                            {
+                                clientGameList.Add(clientID, gameIdToJoin);
+                            }
+                            else
+                            {
+                                clientGameList[clientID] = gameIdToJoin;
+                            }
+
+
+                            serverResponse = string.Join(",", "JOINED_GAME", clientGameList[clientID]); //send to player who asked
+
+                            SendServerReponse(serverResponse, clientID);
 
                             break;
                         case "TILE_CLICKED":
 
                             Console.WriteLine("Client {0} clicked a Tile: {1}", clientID, userData);
-                            serverResponse = userData; //Send to other player
+                            
+                            SendServerReponse(userData, gameClientsList[clientGameList[clientID]], clientID);
+
+                            gameId = clientGameList[clientID];
+
+                            NextTurn(gameId);
 
                             break;
-                        case "BOMBS_GRID":
+                        case "START_GAME":
                             
                             Console.WriteLine("Client {0} Sent a Bomb Grid and Tile Click", clientID);
-                            serverResponse = userData; // Send to other player
-                            //bombGrid.Add(clientID, userData); //store unparsed version to send back to a client who asks
+
+                            //send it out to each player in the game
+                            gameId = clientGameList[clientID];
+                            SendServerReponse(string.Join(",", parseMsg.Skip(1)), gameClientsList[gameId], clientID);
+
+                            NextTurn(gameId);
+
+                            break;
+                        case "END_GAME":
+
+                            Console.WriteLine("Client {0} reported Game Over", clientID);
+                            //can use gameId in msg or look it up based on player id,
+                            //lets use the message value for now;
+                            int gameToEnd = int.Parse(parseMsg[1]);
+                            RemoveGameFromServerAndClients(gameToEnd);
+
+                            break;
+                        case "DROP_GAME":
+
+                            Console.WriteLine("Client {0} dropped their game", clientID);
+                            //can use gameId in msg or look it up based on player id,
+                            //lets use the message value for now;
+                            int gameToDrop = int.Parse(parseMsg[1]); // dont use this, just drop client from all games for nwo
+                            RemoveClientFromGames(clientID);
+
+                            NextTurn(gameId);
 
                             break;
                         case "PING":
@@ -153,15 +249,15 @@ namespace Game_Server
 
                     }
 
-                    Byte[] serverResponseBytes = System.Text.Encoding.ASCII.GetBytes(serverResponse);
-                    stream.Write(serverResponseBytes, 0, serverResponseBytes.Length);
-                    Console.WriteLine("{1}: Sent: {0}", serverResponse, Thread.CurrentThread.ManagedThreadId);
+                    
                 }
 
                 Console.WriteLine("Closing Client ID {0}, timeout 5000ms", clientID);
-                //remove clienbt id from list
+                //remove clienbt id from list, and any game ariftifacts
                 Console.WriteLine("");
-                clientsList.Remove(clientID);
+
+                RemoveClientFromServer(clientID);
+
                 client.GetStream().Close();
                 client.Close();
             }
@@ -170,9 +266,72 @@ namespace Game_Server
                 //Console.WriteLine("Exception: {0}", e.ToString());
                 Console.WriteLine("Client ID Dropped!: {0}", clientID);
                 //remove clienbt id from list
-                clientsList.Remove(clientID);
+                RemoveClientFromServer(clientID);
             }
             ListConnectedUsers();
+        }
+        public void NextTurn(int gameId)
+        {
+            gameTurnList[gameId] = (gameTurnList[gameId] + 1) % gameClientsList[gameId].Count; //icnrement whos turn it is
+
+            //okay we will inform the next player
+            int playerNumber = gameTurnList[gameId];
+            int matchingClientid = gameClientsList[gameId][playerNumber];
+
+            string msgKey = "YOUR_TURN";
+            SendServerReponse(msgKey, matchingClientid);
+        }
+        public void RemoveClientFromServer(int clientId)
+        {
+            clientsList.Remove(clientId);
+
+            RemoveClientFromGames(clientId);
+        }
+        public void RemoveClientFromGames(int clientId)
+        {
+            clientsList.Remove(clientId);
+
+            if (clientGameList.ContainsKey(clientId))
+                clientGameList.Remove(clientId);
+
+            foreach (KeyValuePair<int, List<int>> game in gameClientsList)
+            {
+                if (game.Value.Contains(clientId))
+                    game.Value.Remove(clientId);
+            }
+        }
+        public void RemoveGameFromServerAndClients(int gameId)
+        {
+            if (gameClientsList.ContainsKey(gameId))
+                gameClientsList.Remove(gameId);
+
+            foreach (KeyValuePair<int, int> client in clientGameList)
+            {
+                if (client.Value == gameId)
+                    clientGameList[client.Key] = -1; //maybe i can remove client form this list instead
+            }
+        }
+
+        public void SendServerReponse(string serverResponse, int clientId)
+        {
+            Byte[] serverResponseBytes = System.Text.Encoding.ASCII.GetBytes(serverResponse);
+            clientsList[clientId].Write(serverResponseBytes, 0, serverResponseBytes.Length);
+            Console.WriteLine("{1}: Sent: {0}", serverResponse, Thread.CurrentThread.ManagedThreadId);
+        }
+        public void SendServerReponse(string serverResponse, List<int> clientIdList)
+        {
+            Byte[] serverResponseBytes = System.Text.Encoding.ASCII.GetBytes(serverResponse);
+            foreach (int clientId in clientIdList)
+            {
+                clientsList[clientId].Write(serverResponseBytes, 0, serverResponseBytes.Length);
+                Console.WriteLine("{1}: Sent: {0}", serverResponse, Thread.CurrentThread.ManagedThreadId);
+            }
+        }
+        public void SendServerReponse(string serverResponse, List<int> clientIdList, int clientToExclude)
+        {
+            List<int> newListExludingClient = new List<int>(clientIdList);
+            clientIdList.Remove(clientToExclude);
+            SendServerReponse(serverResponse, newListExludingClient);
         }
     }
 }
