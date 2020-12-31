@@ -216,7 +216,7 @@ namespace Game_Server
 
                             //send it out to each player in the game
                             gameId = clientGameList[clientID];
-                            SendServerReponse(string.Join(",", parseMsg.Skip(1)), gameClientsList[gameId], clientID);
+                            SendServerReponse(userData, gameClientsList[gameId], clientID);
 
                             NextTurn(gameId);
 
