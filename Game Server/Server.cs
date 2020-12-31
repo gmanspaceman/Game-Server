@@ -287,6 +287,8 @@ namespace Game_Server
 
             string msgKey = "YOUR_TURN";
             SendServerReponse(msgKey, matchingClientid);
+
+            Console.WriteLine("Sent YOU_TURN to {0}", matchingClientid);
         }
         public void RemoveClientFromServer(int clientId)
         {
