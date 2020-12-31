@@ -318,6 +318,7 @@ namespace Game_Server
         }
         public void PrintServerState()
         {
+            Console.WriteLine("");
             Console.WriteLine("==============SERVER STATE===============");
             Console.WriteLine("-----------CONNECTED CLIENTS-------------");
             foreach (int clientId in clientsList.Keys)
@@ -328,6 +329,7 @@ namespace Game_Server
                 Console.WriteLine("Game {0} has these clients: {1}", k.Key, string.Join(",",k.Value));
             }
             Console.WriteLine("============END SERVER STATE=============");
+            Console.WriteLine("");
 
         }
 
