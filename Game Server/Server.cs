@@ -175,6 +175,23 @@ namespace Game_Server
                             SendServerReponse(serverResponse, clientID);
                             
                             break;
+                        case "GAME_INFO":
+
+                            Console.WriteLine("Client {0} wants Info on their game", clientID);
+
+                            if (clientGameList.ContainsKey(clientID) && 
+                                gameClientsList.ContainsKey(clientGameList[clientID]))
+                            {
+                                gameId = clientGameList[clientID];
+                                serverResponse = string.Join(",", "GAME_INFO",
+                                                                gameId,
+                                                                gameClientsList[gameId].Count,
+                                                                gameTurnList[gameId]);
+
+                                SendServerReponse(serverResponse, clientID);
+                            }
+
+                            break;
                         case "JOIN_GAME":
 
                             Console.WriteLine("Client {0} wants to Join a Game", clientID);
@@ -245,14 +262,29 @@ namespace Game_Server
 
                             //DO nothing, pinging to keep connection alive
 
-                            //lets cahnge this to repsond with a games list
-                            //beginngings of auto list update
-                            serverResponse = "GAME_LIST"; //Send to both i guess
-                            foreach (KeyValuePair<int, List<int>> game in gameClientsList)
+                            //If connected to a game send back game info 
+                            //else just update the server list
+                            if (clientGameList.ContainsKey(clientID) &&
+                                gameClientsList.ContainsKey(clientGameList[clientID]))
                             {
-                                serverResponse = string.Join(",", serverResponse, game.Key.ToString(), game.Value.Count.ToString());
+                                gameId = clientGameList[clientID];
+                                serverResponse = string.Join(",", "GAME_INFO",
+                                                                gameId,
+                                                                gameClientsList[gameId].Count,
+                                                                gameTurnList[gameId]);
+
+                                SendServerReponse(serverResponse, clientID);
                             }
-                            SendServerReponse(serverResponse, clientID);
+                            else
+                            {
+
+                                serverResponse = "GAME_LIST"; //Send to both i guess
+                                foreach (KeyValuePair<int, List<int>> game in gameClientsList)
+                                {
+                                    serverResponse = string.Join(",", serverResponse, game.Key.ToString(), game.Value.Count.ToString());
+                                }
+                                SendServerReponse(serverResponse, clientID);
+                            }
 
                             Console.WriteLine("Client {0} Pinged", clientID);
 
