@@ -244,6 +244,16 @@ namespace Game_Server
                         case "PING":
 
                             //DO nothing, pinging to keep connection alive
+
+                            //lets cahnge this to repsond with a games list
+                            //beginngings of auto list update
+                            serverResponse = "GAME_LIST"; //Send to both i guess
+                            foreach (KeyValuePair<int, List<int>> game in gameClientsList)
+                            {
+                                serverResponse = string.Join(",", serverResponse, game.Key.ToString(), game.Value.Count.ToString());
+                            }
+                            SendServerReponse(serverResponse, clientID);
+
                             Console.WriteLine("Client {0} Pinged", clientID);
 
                             break;
@@ -290,7 +300,7 @@ namespace Game_Server
             string msgKey = "YOUR_TURN";
             SendServerReponse(msgKey, matchingClientid);
 
-            Console.WriteLine("Sent YOU_TURN to {0}", matchingClientid);
+            Console.WriteLine("Sent YOUR_TURN to {0}", matchingClientid);
         }
         public void RemoveClientFromServer(int clientId)
         {
