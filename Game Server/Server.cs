@@ -139,8 +139,8 @@ namespace Game_Server
                         Console.WriteLine("{1}: Partial Data: {0}", carryData, Thread.CurrentThread.ManagedThreadId);
                         continue;
                     }
-                    Console.WriteLine("{1}: Received: {0}", userData, Thread.CurrentThread.ManagedThreadId);
-                    userData.Replace(eom, "");
+                    
+                    userData = userData.Replace(eom, "");
 
                     Console.WriteLine("{1}: Received: {0}", userData, Thread.CurrentThread.ManagedThreadId);
                     if (carryData != string.Empty)
