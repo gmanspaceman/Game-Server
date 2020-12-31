@@ -117,21 +117,25 @@ namespace Game_Server
                     }
                     lastComm.Restart();
 
+
+                    #region Carry Data
+                    //will need to just dump carry data if its getting to obigt
+                    //this implies more message traffice than the loop can keep up with
+                    //should only happen in a debug enviorment
                     userData = carryData;
                     carryData = string.Empty;
 
                     inputBuffer = stream.Read(buffer, 0, buffer.Length);
                     userData = Encoding.ASCII.GetString(buffer, 0, inputBuffer);
 
-                    //Carry over
                     if (userData.Contains(eom)) //Find the <EOM> tag
                     {
-                        if (!userData.EndsWith(eom)) //split and store the rest
-                        {
-                            string[] splitInput = userData.Split(new string[] { eom }, StringSplitOptions.None);
-                            userData += splitInput[0];
-                            carryData = splitInput[1];
-                        }
+                        string[] splitInput = userData.Split(new string[] { eom }, StringSplitOptions.None);
+                        userData = splitInput[0];
+
+                        for (int ii = 1; ii < splitInput.Length - 1; ii++)
+                            carryData += splitInput[ii] + eom;
+                        Console.WriteLine("{1}: Extra Data: {0}", carryData, Thread.CurrentThread.ManagedThreadId);
                     }
                     else //patial packet keep the string and append the next read
                     {
@@ -139,14 +143,12 @@ namespace Game_Server
                         Console.WriteLine("{1}: Partial Data: {0}", carryData, Thread.CurrentThread.ManagedThreadId);
                         continue;
                     }
-                    
                     userData = userData.Replace(eom, "");
+                    #endregion
+
 
                     Console.WriteLine("{1}: Received: {0}", userData, Thread.CurrentThread.ManagedThreadId);
-                    if (carryData != string.Empty)
-                    {
-                        Console.WriteLine("{1}: Extra Data: {0}", carryData, Thread.CurrentThread.ManagedThreadId);
-                    }
+
 
 
 
