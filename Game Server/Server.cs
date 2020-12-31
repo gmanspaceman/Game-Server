@@ -22,6 +22,8 @@ namespace Game_Server
         public const int maxConnections = 10; //randomly picked
         public const int maxGames = 10; //randomly picked
 
+        public const string eom = "<EOM>";
+
         public Server(string ip, int port)
         {
             IPAddress localAddr = IPAddress.Any; //vs IPAddress.Parse(ip);
@@ -98,7 +100,9 @@ namespace Game_Server
 
             Byte[] buffer = new Byte[1024];
             int inputBuffer;
-
+            string userData = string.Empty;
+            string carryData = string.Empty;
+            
             try
             {
                 Stopwatch lastComm = new Stopwatch();
@@ -108,15 +112,43 @@ namespace Game_Server
                 {
                     if (!stream.DataAvailable)
                     {
-                        //slowdown thread
-                        Thread.Sleep(125);
+                        Thread.Sleep(125); //slowdown thread
                         continue;
                     }
-                    inputBuffer = stream.Read(buffer, 0, buffer.Length);
                     lastComm.Restart();
 
-                    string userData = Encoding.ASCII.GetString(buffer, 0, inputBuffer);
+                    userData = carryData;
+                    carryData = string.Empty;
+
+                    inputBuffer = stream.Read(buffer, 0, buffer.Length);
+                    userData = Encoding.ASCII.GetString(buffer, 0, inputBuffer);
+
+                    //Carry over
+                    if (userData.Contains(eom)) //Find the <EOM> tag
+                    {
+                        if (!userData.EndsWith(eom)) //split and store the rest
+                        {
+                            string[] splitInput = userData.Split(new string[] { eom }, StringSplitOptions.None);
+                            userData += splitInput[0];
+                            carryData = splitInput[1];
+                        }
+                    }
+                    else //patial packet keep the string and append the next read
+                    {
+                        carryData = userData;
+                        Console.WriteLine("{1}: Partial Data: {0}", carryData, Thread.CurrentThread.ManagedThreadId);
+                        continue;
+                    }
+                    userData.Replace(eom, "");
+
                     Console.WriteLine("{1}: Received: {0}", userData, Thread.CurrentThread.ManagedThreadId);
+                    if (carryData != string.Empty)
+                    {
+                        Console.WriteLine("{1}: Extra Data: {0}", carryData, Thread.CurrentThread.ManagedThreadId);
+                    }
+
+
+
 
                     string serverResponse = "";
                     string[] parseMsg = userData.Split(",");
@@ -327,7 +359,7 @@ namespace Game_Server
             int playerNumber = gameTurnList[gameId];
             int matchingClientid = gameClientsList[gameId][playerNumber];
 
-            Thread.Sleep(125);
+            //Thread.Sleep(125);
 
             string msgKey = "YOUR_TURN";
             SendServerReponse(msgKey, matchingClientid);
@@ -384,32 +416,46 @@ namespace Game_Server
 
         }
 
+
+        //These shoudl be able to be combine but i had an issue with something
+        
         public void SendServerReponse(string serverResponse, int clientId)
         {
-            Byte[] serverResponseBytes = System.Text.Encoding.ASCII.GetBytes(serverResponse);
-            clientsList[clientId].Write(serverResponseBytes, 0, serverResponseBytes.Length);
-            Console.WriteLine("{1}: Sent: {0}", serverResponse, Thread.CurrentThread.ManagedThreadId);
+            SendServer(clientsList[clientId], serverResponse);
+            //Byte[] serverResponseBytes = System.Text.Encoding.ASCII.GetBytes(serverResponse);
+            //clientsList[clientId].Write(serverResponseBytes, 0, serverResponseBytes.Length);
+            //Console.WriteLine("{1}: Sent: {0}", serverResponse, Thread.CurrentThread.ManagedThreadId);
         }
         public void SendServerReponse(string serverResponse, List<int> clientIdList)
         {
-            Byte[] serverResponseBytes = System.Text.Encoding.ASCII.GetBytes(serverResponse);
+            //Byte[] serverResponseBytes = System.Text.Encoding.ASCII.GetBytes(serverResponse);
             foreach (int clientId in clientIdList)
             {
-                clientsList[clientId].Write(serverResponseBytes, 0, serverResponseBytes.Length);
-                Console.WriteLine("{1}: Sent: {0}", serverResponse, Thread.CurrentThread.ManagedThreadId);
+                SendServer(clientsList[clientId], serverResponse);
+                //clientsList[clientId].Write(serverResponseBytes, 0, serverResponseBytes.Length);
+                //Console.WriteLine("{1}: Sent: {0}", serverResponse, Thread.CurrentThread.ManagedThreadId);
             }
         }
         public void SendServerReponse(string serverResponse, List<int> clientIdList, int clientToExclude)
         {
-            Byte[] serverResponseBytes = System.Text.Encoding.ASCII.GetBytes(serverResponse);
+            //Byte[] serverResponseBytes = System.Text.Encoding.ASCII.GetBytes(serverResponse);
             foreach (int clientId in clientIdList)
             {
                 if (clientId == clientToExclude)
                     continue;
+                SendServer(clientsList[clientId], serverResponse);
 
-                clientsList[clientId].Write(serverResponseBytes, 0, serverResponseBytes.Length);
-                Console.WriteLine("{1}: Sent: {0}", serverResponse, Thread.CurrentThread.ManagedThreadId);
+                //clientsList[clientId].Write(serverResponseBytes, 0, serverResponseBytes.Length);
+                //Console.WriteLine("{1}: Sent: {0}", serverResponse, Thread.CurrentThread.ManagedThreadId);
             }
+        }
+        public void SendServer(NetworkStream n, string msg)
+        {
+            msg += eom; //append EOM marker
+
+            Byte[] msgBytes = System.Text.Encoding.ASCII.GetBytes(msg);
+            n.Write(msgBytes, 0, msgBytes.Length);
+            Console.WriteLine("{1}: Sent: {0}", msg, Thread.CurrentThread.ManagedThreadId);
         }
     }
 }
