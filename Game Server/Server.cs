@@ -252,8 +252,9 @@ namespace Game_Server
                             break;
 
                     }
+                    PrintServerState();
 
-                    
+
                 }
 
                 Console.WriteLine("Closing Client ID {0}, timeout 5000ms", clientID);
@@ -315,6 +316,20 @@ namespace Game_Server
                     clientGameList[client.Key] = -1; //maybe i can remove client form this list instead
             }
         }
+        public void PrintServerState()
+        {
+            Console.WriteLine("==============SERVER STATE===============");
+            Console.WriteLine("-----------CONNECTED CLIENTS-------------");
+            foreach (int clientId in clientsList.Keys)
+                Console.WriteLine("Client {0} is connected", clientId);
+            Console.WriteLine("--------------ACTIVE GAMES---------------");
+            foreach (KeyValuePair<int, List<int>> k in gameClientsList)
+            {
+                Console.WriteLine("Game {0} has these clients: {1}", k.Key, string.Join(",",k.Value));
+            }
+            Console.WriteLine("============END SERVER STATE=============");
+
+        }
 
         public void SendServerReponse(string serverResponse, int clientId)
         {
@@ -333,9 +348,15 @@ namespace Game_Server
         }
         public void SendServerReponse(string serverResponse, List<int> clientIdList, int clientToExclude)
         {
-            List<int> newListExludingClient = new List<int>(clientIdList);
-            clientIdList.Remove(clientToExclude);
-            SendServerReponse(serverResponse, newListExludingClient);
+            Byte[] serverResponseBytes = System.Text.Encoding.ASCII.GetBytes(serverResponse);
+            foreach (int clientId in clientIdList)
+            {
+                if (clientId == clientToExclude)
+                    continue;
+
+                clientsList[clientId].Write(serverResponseBytes, 0, serverResponseBytes.Length);
+                Console.WriteLine("{1}: Sent: {0}", serverResponse, Thread.CurrentThread.ManagedThreadId);
+            }
         }
     }
 }
