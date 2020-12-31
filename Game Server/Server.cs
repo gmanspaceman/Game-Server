@@ -285,6 +285,8 @@ namespace Game_Server
             int playerNumber = gameTurnList[gameId];
             int matchingClientid = gameClientsList[gameId][playerNumber];
 
+            Thread.Sleep(125);
+
             string msgKey = "YOUR_TURN";
             SendServerReponse(msgKey, matchingClientid);
 
