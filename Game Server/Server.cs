@@ -308,17 +308,14 @@ namespace Game_Server
 
                                 SendServerReponse(serverResponse, clientID);
                             }
-                            else
+
+                            serverResponse = "GAME_LIST"; //Send to both i guess
+                            foreach (KeyValuePair<int, List<int>> game in gameClientsList)
                             {
-
-                                serverResponse = "GAME_LIST"; //Send to both i guess
-                                foreach (KeyValuePair<int, List<int>> game in gameClientsList)
-                                {
-                                    serverResponse = string.Join(",", serverResponse, game.Key.ToString(), game.Value.Count.ToString());
-                                }
-                                SendServerReponse(serverResponse, clientID);
+                                serverResponse = string.Join(",", serverResponse, game.Key.ToString(), game.Value.Count.ToString());
                             }
-
+                            SendServerReponse(serverResponse, clientID);
+                            
                             Console.WriteLine("Client {0} Pinged", clientID);
 
                             break;
