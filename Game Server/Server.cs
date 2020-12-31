@@ -181,7 +181,11 @@ namespace Game_Server
 
                             int gameIdToJoin = int.Parse(parseMsg[1]);
 
+                            if (!gameClientsList[gameIdToJoin].Contains(clientID))
+                                gameClientsList[gameIdToJoin].Add(clientID);
+
                             gameClientsList[gameIdToJoin].Add(clientID);
+                            
                             if (!clientGameList.ContainsKey(clientID))
                             {
                                 clientGameList.Add(clientID, gameIdToJoin);
@@ -303,6 +307,9 @@ namespace Game_Server
             {
                 if (game.Value.Contains(clientId))
                     game.Value.Remove(clientId);
+
+                if (gameClientsList[game.Key].Count == 0)
+                    gameClientsList.Remove(game.Key);
             }
         }
         public void RemoveGameFromServerAndClients(int gameId)
