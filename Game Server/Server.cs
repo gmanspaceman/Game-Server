@@ -130,11 +130,12 @@ namespace Game_Server
 
                     if (userData.Contains(eom)) //Find the <EOM> tag
                     {
-                        string[] splitInput = userData.Split(new string[] { eom }, StringSplitOptions.None);
+                        string[] splitInput = userData.Split(new string[] { eom }, StringSplitOptions.RemoveEmptyEntries);
+
+                        if (splitInput.Length > 1)
+                            carryData = userData.Substring(splitInput[0].Length + eom.Length);
                         userData = splitInput[0];
 
-                        for (int ii = 1; ii < splitInput.Length - 1; ii++)
-                            carryData += splitInput[ii] + eom;
                         Console.WriteLine("{1}: Extra Data: {0}", carryData, Thread.CurrentThread.ManagedThreadId);
                     }
                     else //patial packet keep the string and append the next read
