@@ -43,7 +43,7 @@ namespace Game_Server
             });
             t.Start();
 
-            Console.WriteLine("Server Started...!");
+            Console.WriteLine("Server Started...! Version 1.0");
         }
 
         public static void StartClient()
