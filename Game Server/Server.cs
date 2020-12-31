@@ -335,7 +335,7 @@ namespace Game_Server
             Console.WriteLine("--------------ACTIVE GAMES---------------");
             foreach (KeyValuePair<int, List<int>> k in gameClientsList)
             {
-                Console.WriteLine("Game {0} has these clients: {1}", k.Key, string.Join(",",k.Value));
+                Console.WriteLine("Game {0} has these clients: {1}. It's {2} turn.", k.Key, string.Join(",",k.Value), gameTurnList[k.Key]);
             }
             Console.WriteLine("============END SERVER STATE=============");
             Console.WriteLine("");
