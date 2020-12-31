@@ -184,8 +184,6 @@ namespace Game_Server
                             if (!gameClientsList[gameIdToJoin].Contains(clientID))
                                 gameClientsList[gameIdToJoin].Add(clientID);
 
-                            gameClientsList[gameIdToJoin].Add(clientID);
-                            
                             if (!clientGameList.ContainsKey(clientID))
                             {
                                 clientGameList.Add(clientID, gameIdToJoin);
