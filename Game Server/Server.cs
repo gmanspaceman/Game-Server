@@ -404,16 +404,19 @@ namespace Game_Server
         }
         public void NextTurn(int gameId)
         {
-            gameTurnList[gameId] = (gameTurnList[gameId] + 1) % gameClientsList[gameId].Count; //icnrement whos turn it is
+            if (gameClientsList.ContainsKey(gameId))
+            {
+                gameTurnList[gameId] = (gameTurnList[gameId] + 1) % gameClientsList[gameId].Count; //icnrement whos turn it is
 
-            //okay we will inform the next player
-            int playerNumber = gameTurnList[gameId];
-            int matchingClientid = gameClientsList[gameId][playerNumber];
+                //okay we will inform the next player
+                int playerNumber = gameTurnList[gameId];
+                int matchingClientid = gameClientsList[gameId][playerNumber];
 
-            //Thread.Sleep(125);
-            SendServerReponse("YOUR_TURN", matchingClientid);
+                //Thread.Sleep(125);
+                SendServerReponse("YOUR_TURN", matchingClientid);
 
-            Console.WriteLine("Sent YOUR_TURN to {0}", matchingClientid);
+                Console.WriteLine("Sent YOUR_TURN to {0}", matchingClientid);
+            }
         }
         public void RemoveClientFromServer(int clientId)
         {
@@ -423,7 +426,7 @@ namespace Game_Server
         }
         public void RemoveClientFromGames(int clientId)
         {
-            clientsList.Remove(clientId);
+            //clientsList.Remove(clientId);
 
             if (clientGameList.ContainsKey(clientId))
                 clientGameList.Remove(clientId);
@@ -434,7 +437,10 @@ namespace Game_Server
                     game.Value.Remove(clientId);
 
                 if (gameClientsList[game.Key].Count == 0)
+                {
                     gameClientsList.Remove(game.Key);
+                    gameTurnList.Remove(game.Key);
+                }
             }
         }
         public void RemoveGameFromServerAndClients(int gameId)
