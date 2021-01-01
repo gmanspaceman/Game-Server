@@ -130,7 +130,7 @@ namespace Game_Server
                     userData += Encoding.ASCII.GetString(buffer, 0, inputBuffer);
 
                     Queue<string> validMessages = new Queue<string>();
-                    bool debugMsgQueueingAndCarry = true;
+                    bool debugMsgQueueingAndCarry = false;
                     if (userData.Contains(eom)) //Find the <EOM> tag
                     {
                         //lets find a way to store all full messages right now
