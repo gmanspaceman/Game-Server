@@ -255,13 +255,26 @@ namespace Game_Server
                         case "TILE_CLICKED":
 
                             Console.WriteLine("Client {0} clicked a Tile: {1}", clientID, userData);
-                            
-                            SendServerReponse(userData, gameClientsList[clientGameList[clientID]], clientID);
-
                             gameId = clientGameList[clientID];
+
+                            SendServerReponse(userData, gameClientsList[gameId], clientID);
 
                             NextTurn(gameId);
 
+                            break;
+                        case "TILE_RIGHTCLICKED":
+
+                            Console.WriteLine("Client {0} right clicked a Tile: {1}", clientID, userData);
+                            gameId = clientGameList[clientID];
+                            SendServerReponse(userData, gameClientsList[gameId], clientID);
+
+                            break;
+                        case "RESTART":
+
+                            Console.WriteLine("Client {0} wanted to play again: {1}", clientID, userData);
+                            gameId = clientGameList[clientID];
+                            SendServerReponse(userData, gameClientsList[gameId], clientID);
+                            NextTurn(gameId);
                             break;
                         case "START_GAME":
                             
@@ -277,10 +290,18 @@ namespace Game_Server
                         case "END_GAME":
 
                             Console.WriteLine("Client {0} reported Game Over", clientID);
+                            int gameThatEnded = int.Parse(parseMsg[1]);
+                            //original ide was to destory the game
+                            //maybe keep it alive and just wait for a restart command
+                            //right now we can jsut send YOUR TURN to everyoen to unlock restarting
+
+                            msgKey = "YOUR_TURN";
+                            SendServerReponse(msgKey, gameClientsList[gameThatEnded]);
+
                             //can use gameId in msg or look it up based on player id,
                             //lets use the message value for now;
-                            int gameToEnd = int.Parse(parseMsg[1]);
-                            RemoveGameFromServerAndClients(gameToEnd);
+                            
+                            //RemoveGameFromServerAndClients(gameThatEnded);
 
                             break;
                         case "DROP_GAME":
