@@ -129,6 +129,7 @@ namespace Game_Server
                     userData = Encoding.ASCII.GetString(buffer, 0, inputBuffer);
 
                     Queue<string> validMessages = new Queue<string>();
+                    bool debugMsgQueueingAndCarry = false;
                     if (userData.Contains(eom)) //Find the <EOM> tag
                     {
                         //lets find a way to store all full messages right now
@@ -142,7 +143,8 @@ namespace Game_Server
                             foreach (string msg in splitInput)
                             {
                                 validMessages.Enqueue(msg.Replace(eom, ""));
-                                Console.WriteLine("FullMsgQueued: " + msg);
+                                if (debugMsgQueueingAndCarry) 
+                                    Console.WriteLine("FullMsgQueued: " + msg);
                             }
                         }
                         else
@@ -151,10 +153,12 @@ namespace Game_Server
                             for (int ii = 0; ii < splitInput.Length - 1; ii++)
                             {
                                 validMessages.Enqueue(splitInput[ii].Replace(eom, ""));
-                                Console.WriteLine("FullMsgQueued: " + splitInput[ii]);
+                                if (debugMsgQueueingAndCarry) 
+                                    Console.WriteLine("FullMsgQueued: " + splitInput[ii]);
                             }
                             carryData = splitInput[splitInput.Length - 1];
-                            Console.WriteLine("CarryData: " + carryData);
+                            if (debugMsgQueueingAndCarry) 
+                                Console.WriteLine("CarryData: " + carryData);
                         }
                     }
                     else //patial packet keep the string and append the next read
@@ -162,7 +166,8 @@ namespace Game_Server
                         carryData = userData;
 
                         if (carryData != string.Empty)
-                            Console.WriteLine("carryData: " + carryData);
+                            if (debugMsgQueueingAndCarry) 
+                                Console.WriteLine("carryData: " + carryData);
 
                         continue;
                     }
@@ -317,8 +322,7 @@ namespace Game_Server
                                 //maybe keep it alive and just wait for a restart command
                                 //right now we can jsut send YOUR TURN to everyoen to unlock restarting
 
-                                msgKey = "YOUR_TURN";
-                                SendServerReponse(msgKey, gameClientsList[gameThatEnded]);
+                                SendServerReponse("YOUR_TURN", gameClientsList[gameThatEnded]);
 
                                 //can use gameId in msg or look it up based on player id,
                                 //lets use the message value for now;
@@ -372,7 +376,10 @@ namespace Game_Server
                                 break;
 
                         }
-                        PrintServerState();
+                        if (msgKey != "PING")
+                        {
+                            PrintServerState();
+                        }
 
                     }
                 }
@@ -404,9 +411,7 @@ namespace Game_Server
             int matchingClientid = gameClientsList[gameId][playerNumber];
 
             //Thread.Sleep(125);
-
-            string msgKey = "YOUR_TURN";
-            SendServerReponse(msgKey, matchingClientid);
+            SendServerReponse("YOUR_TURN", matchingClientid);
 
             Console.WriteLine("Sent YOUR_TURN to {0}", matchingClientid);
         }
