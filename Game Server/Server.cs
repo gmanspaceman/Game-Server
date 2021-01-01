@@ -376,10 +376,10 @@ namespace Game_Server
                                 break;
 
                         }
-                        if (msgKey != "PING")
-                        {
+                        //if (msgKey != "PING")
+                        //{
                             PrintServerState();
-                        }
+                        //}
 
                     }
                 }
