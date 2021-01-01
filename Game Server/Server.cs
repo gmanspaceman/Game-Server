@@ -462,18 +462,39 @@ namespace Game_Server
             if (clientGameList.ContainsKey(clientId))
                 clientGameList.Remove(clientId);
 
+            
+
             foreach (KeyValuePair<int, List<int>> game in gameClientsList)
             {
+                //incremnt turn on that game if it was his turn
+                //i think its easier to incmrent then remove
+                //id rather do it the other wya but i think it messes
+                //up the mod math and i dont want to look at it right now
                 if (game.Value.Contains(clientId))
-                    game.Value.Remove(clientId);
-
-                if (gameClientsList[game.Key].Count == 0)
                 {
-                    gameClientsList.Remove(game.Key);
-                    gameTurnList.Remove(game.Key);
-                    gamePlayingList.Remove(game.Key);
-                    gameJoiningActiveGame.Remove(game.Key);
+                    if (game.Value.Count > 1)
+                    {
+                        if (game.Value[gameTurnList[game.Key]] == clientId)
+                        {
+                            NextTurn(game.Key);
+                        }
+                    }
+
+                    game.Value.Remove(clientId);
+                
+
+                    if (gameClientsList[game.Key].Count == 0)
+                    {
+                        gameClientsList.Remove(game.Key);
+                        gameTurnList.Remove(game.Key);
+                        gamePlayingList.Remove(game.Key);
+                        gameJoiningActiveGame.Remove(game.Key);
+                    }   
+
                 }
+
+
+
             }
         }
         public void RemoveGameFromServerAndClients(int gameId)
