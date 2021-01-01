@@ -13,11 +13,12 @@ namespace Game_Server
     {
         TcpListener server = null;
         public static Dictionary<int, NetworkStream> clientsList = new Dictionary<int, NetworkStream>();
-        
+        public static Dictionary<int, int> clientGameList = new Dictionary<int, int>(); 
         public static Dictionary<int, List<int>> gameClientsList = new Dictionary<int, List<int>>();
-        public static Dictionary<int, int> clientGameList = new Dictionary<int, int>();
-
         public static Dictionary<int, int> gameTurnList = new Dictionary<int, int>();
+        public static Dictionary<int, bool> gamePlayingList = new Dictionary<int, bool>();
+
+        public static Dictionary<int, Queue<int>> gameJoiningActiveGame = new Dictionary<int, Queue<int>>();
 
         public const int maxConnections = 10; //randomly picked
         public const int maxGames = 10; //randomly picked
@@ -197,6 +198,9 @@ namespace Game_Server
                                     if (!gameClientsList.ContainsKey(newGameId))
                                     {
                                         gameClientsList.Add(newGameId, new List<int>());
+                                        gamePlayingList.Add(newGameId, false);
+                                        gameJoiningActiveGame.Add(newGameId, new Queue<int>());
+
                                         gameClientsList[newGameId].Add(clientID);
                                         if (!clientGameList.ContainsKey(clientID))
                                         {
@@ -272,11 +276,31 @@ namespace Game_Server
                                 {
                                     clientGameList[clientID] = gameIdToJoin;
                                 }
-
-
                                 serverResponse = string.Join(",", "JOINED_GAME", clientGameList[clientID]); //send to player who asked
 
                                 SendServerReponse(serverResponse, clientID);
+
+
+                                //if the game is already active
+                                //added to midgame update queue and request from active player
+                                if (gamePlayingList[gameIdToJoin])
+                                {
+                                    gameJoiningActiveGame[gameIdToJoin].Enqueue(clientID);
+                                    GetGameFromPlayerTurn(gameIdToJoin);
+                                }
+
+                                break;
+                            case "MID_GAME":
+
+                                Console.WriteLine("Client {0} Sent a Mid Game Update: {1}", clientID, userData);
+                                gameId = clientGameList[clientID];
+
+                                //send this to whomeverasked
+                                while (gameJoiningActiveGame[gameId].Count > 0)
+                                {
+                                    SendServerReponse(userData, gameJoiningActiveGame[gameId].Dequeue());
+                                }
+                                //SendServerReponse(userData, gameClientsList[gameId], clientID);
 
                                 break;
                             case "TILE_CLICKED":
@@ -309,6 +333,7 @@ namespace Game_Server
 
                                 //send it out to each player in the game
                                 gameId = clientGameList[clientID];
+                                gamePlayingList[gameId] = true;
                                 SendServerReponse(userData, gameClientsList[gameId], clientID);
 
                                 NextTurn(gameId);
@@ -318,6 +343,7 @@ namespace Game_Server
 
                                 Console.WriteLine("Client {0} reported Game Over", clientID);
                                 int gameThatEnded = int.Parse(parseMsg[1]);
+                                gamePlayingList[gameThatEnded] = false;
                                 //original ide was to destory the game
                                 //maybe keep it alive and just wait for a restart command
                                 //right now we can jsut send YOUR TURN to everyoen to unlock restarting
@@ -418,6 +444,11 @@ namespace Game_Server
                 Console.WriteLine("Sent YOUR_TURN to {0}", matchingClientid);
             }
         }
+
+        public void GetGameFromPlayerTurn(int gameId)
+        {
+            SendServerReponse("GET_MIDGAME", gameClientsList[gameId][gameTurnList[gameId]]);
+        }
         public void RemoveClientFromServer(int clientId)
         {
             clientsList.Remove(clientId);
@@ -440,13 +471,21 @@ namespace Game_Server
                 {
                     gameClientsList.Remove(game.Key);
                     gameTurnList.Remove(game.Key);
+                    gamePlayingList.Remove(game.Key);
+                    gameJoiningActiveGame.Remove(game.Key);
                 }
             }
         }
         public void RemoveGameFromServerAndClients(int gameId)
         {
             if (gameClientsList.ContainsKey(gameId))
+            {
                 gameClientsList.Remove(gameId);
+
+                gameTurnList.Remove(gameId);
+                gamePlayingList.Remove(gameId);
+                gameJoiningActiveGame.Remove(gameId);
+            }
 
             foreach (KeyValuePair<int, int> client in clientGameList)
             {
@@ -464,7 +503,7 @@ namespace Game_Server
             Console.WriteLine("--------------ACTIVE GAMES---------------");
             foreach (KeyValuePair<int, List<int>> k in gameClientsList)
             {
-                Console.WriteLine("Game {0} has these clients: {1}. It's {2} turn.", k.Key, string.Join(",",k.Value), gameTurnList[k.Key]);
+                Console.WriteLine("Game {0} has these clients: {1}. It's {2} turn. Playing is {3}", k.Key, string.Join(",",k.Value), gameTurnList[k.Key], gamePlayingList[k.Key]);
             }
             Console.WriteLine("============END SERVER STATE=============");
             Console.WriteLine("");
