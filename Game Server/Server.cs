@@ -128,231 +128,253 @@ namespace Game_Server
                     inputBuffer = stream.Read(buffer, 0, buffer.Length);
                     userData = Encoding.ASCII.GetString(buffer, 0, inputBuffer);
 
+                    Queue<string> validMessages = new Queue<string>();
                     if (userData.Contains(eom)) //Find the <EOM> tag
                     {
+                        //lets find a way to store all full messages right now
+                        //just carry over partial message
+
                         string[] splitInput = userData.Split(new string[] { eom }, StringSplitOptions.RemoveEmptyEntries);
 
-                        if (splitInput.Length > 1)
-                            carryData = userData.Substring(splitInput[0].Length + eom.Length);
-                        userData = splitInput[0];
-
-                        Console.WriteLine("{1}: Extra Data: {0}", carryData, Thread.CurrentThread.ManagedThreadId);
+                        if (userData.EndsWith(eom))
+                        {
+                            //all messages are full
+                            foreach (string msg in splitInput)
+                            {
+                                validMessages.Enqueue(msg.Replace(eom, ""));
+                                Console.WriteLine("FullMsgQueued: " + msg);
+                            }
+                        }
+                        else
+                        {
+                            //last message in is partial
+                            for (int ii = 0; ii < splitInput.Length - 1; ii++)
+                            {
+                                validMessages.Enqueue(splitInput[ii].Replace(eom, ""));
+                                Console.WriteLine("FullMsgQueued: " + splitInput[ii]);
+                            }
+                            carryData = splitInput[splitInput.Length - 1];
+                            Console.WriteLine("CarryData: " + carryData);
+                        }
                     }
                     else //patial packet keep the string and append the next read
                     {
                         carryData = userData;
-                        Console.WriteLine("{1}: Partial Data: {0}", carryData, Thread.CurrentThread.ManagedThreadId);
+
+                        if (carryData != string.Empty)
+                            Console.WriteLine("carryData: " + carryData);
+
                         continue;
                     }
-                    userData = userData.Replace(eom, "");
+                    if (validMessages.Count == 0)
+                        continue;
                     #endregion
 
-
-                    Console.WriteLine("{1}: Received: {0}", userData, Thread.CurrentThread.ManagedThreadId);
-
-
-
-
-
-                    string serverResponse = "";
-                    string[] parseMsg = userData.Split(",");
-                    string msgKey = parseMsg[0];
-                    int gameId = -1;
-
-
-                    switch (msgKey)
+                    while (validMessages.Count != 0)
                     {
-                        case "MAKE_GAME":
-                            Console.WriteLine("Client {0} wants to start a Game", clientID);
+                        userData = validMessages.Dequeue();
 
-                            for (int newGameId = 0; newGameId < maxGames; newGameId++)
-                            {
-                                if (!gameClientsList.ContainsKey(newGameId))
+                        Console.WriteLine("{1}: Processing: {0}", userData, Thread.CurrentThread.ManagedThreadId);
+
+                        string serverResponse = "";
+                        string[] parseMsg = userData.Split(",");
+                        string msgKey = parseMsg[0];
+                        int gameId = -1;
+
+
+                        switch (msgKey)
+                        {
+                            case "MAKE_GAME":
+                                Console.WriteLine("Client {0} wants to start a Game", clientID);
+
+                                for (int newGameId = 0; newGameId < maxGames; newGameId++)
                                 {
-                                    gameClientsList.Add(newGameId, new List<int>());
-                                    gameClientsList[newGameId].Add(clientID);
-                                    if (!clientGameList.ContainsKey(clientID))
+                                    if (!gameClientsList.ContainsKey(newGameId))
                                     {
-                                        clientGameList.Add(clientID, newGameId);
-                                    }
-                                    else
-                                    {
-                                        clientGameList[clientID] = newGameId;
-                                    }
+                                        gameClientsList.Add(newGameId, new List<int>());
+                                        gameClientsList[newGameId].Add(clientID);
+                                        if (!clientGameList.ContainsKey(clientID))
+                                        {
+                                            clientGameList.Add(clientID, newGameId);
+                                        }
+                                        else
+                                        {
+                                            clientGameList[clientID] = newGameId;
+                                        }
 
-                                    if (gameTurnList.ContainsKey(newGameId))
-                                        gameTurnList.Remove(newGameId);
-                                    gameTurnList[newGameId] = 0; //its players 0s turn
+                                        if (gameTurnList.ContainsKey(newGameId))
+                                            gameTurnList.Remove(newGameId);
+                                        gameTurnList[newGameId] = 0; //its players 0s turn
 
-                                    break;
+                                        break;
+                                    }
                                 }
-                            }
-                            //find lowest availble gameIDnot used
-                            //add it to the dict
-                            //add this client to player list
+                                //find lowest availble gameIDnot used
+                                //add it to the dict
+                                //add this client to player list
 
-                            //serverResponse = "MADE_GAME," + clientGameList[clientID]; //send to player who asked
-                            serverResponse = string.Join("," , "JOINED_GAME" , clientGameList[clientID]); //send to player who asked
-
-                            SendServerReponse(serverResponse, clientID);
-
-                            break;
-                        case "GET_GAMES":
-
-                            Console.WriteLine("Client {0} wants a List of the Games", clientID);
-                            
-                            serverResponse = "GAME_LIST"; //Send to both i guess
-
-                            foreach (KeyValuePair<int, List<int>> game in gameClientsList)
-                            {
-                                serverResponse = string.Join(",", serverResponse, game.Key.ToString(), game.Value.Count.ToString());
-                            }
-
-                            SendServerReponse(serverResponse, clientID);
-                            
-                            break;
-                        case "GAME_INFO":
-
-                            Console.WriteLine("Client {0} wants Info on their game", clientID);
-
-                            if (clientGameList.ContainsKey(clientID) && 
-                                gameClientsList.ContainsKey(clientGameList[clientID]))
-                            {
-                                gameId = clientGameList[clientID];
-                                serverResponse = string.Join(",", "GAME_INFO",
-                                                                gameId,
-                                                                gameClientsList[gameId].Count,
-                                                                gameTurnList[gameId]);
+                                //serverResponse = "MADE_GAME," + clientGameList[clientID]; //send to player who asked
+                                serverResponse = string.Join(",", "JOINED_GAME", clientGameList[clientID]); //send to player who asked
 
                                 SendServerReponse(serverResponse, clientID);
-                            }
 
-                            break;
-                        case "JOIN_GAME":
+                                break;
+                            case "GET_GAMES":
 
-                            Console.WriteLine("Client {0} wants to Join a Game", clientID);
+                                Console.WriteLine("Client {0} wants a List of the Games", clientID);
 
-                            int gameIdToJoin = int.Parse(parseMsg[1]);
+                                serverResponse = "GAME_LIST"; //Send to both i guess
 
-                            if (!gameClientsList[gameIdToJoin].Contains(clientID))
-                                gameClientsList[gameIdToJoin].Add(clientID);
-
-                            if (!clientGameList.ContainsKey(clientID))
-                            {
-                                clientGameList.Add(clientID, gameIdToJoin);
-                            }
-                            else
-                            {
-                                clientGameList[clientID] = gameIdToJoin;
-                            }
-
-
-                            serverResponse = string.Join(",", "JOINED_GAME", clientGameList[clientID]); //send to player who asked
-
-                            SendServerReponse(serverResponse, clientID);
-
-                            break;
-                        case "TILE_CLICKED":
-
-                            Console.WriteLine("Client {0} clicked a Tile: {1}", clientID, userData);
-                            gameId = clientGameList[clientID];
-
-                            SendServerReponse(userData, gameClientsList[gameId], clientID);
-
-                            NextTurn(gameId);
-
-                            break;
-                        case "TILE_RIGHTCLICKED":
-
-                            Console.WriteLine("Client {0} right clicked a Tile: {1}", clientID, userData);
-                            gameId = clientGameList[clientID];
-                            SendServerReponse(userData, gameClientsList[gameId], clientID);
-
-                            break;
-                        case "RESTART":
-
-                            Console.WriteLine("Client {0} wanted to play again: {1}", clientID, userData);
-                            gameId = clientGameList[clientID];
-                            SendServerReponse(userData, gameClientsList[gameId], clientID);
-                            NextTurn(gameId);
-                            break;
-                        case "START_GAME":
-                            
-                            Console.WriteLine("Client {0} Sent a Bomb Grid and Tile Click", clientID);
-
-                            //send it out to each player in the game
-                            gameId = clientGameList[clientID];
-                            SendServerReponse(userData, gameClientsList[gameId], clientID);
-
-                            NextTurn(gameId);
-
-                            break;
-                        case "END_GAME":
-
-                            Console.WriteLine("Client {0} reported Game Over", clientID);
-                            int gameThatEnded = int.Parse(parseMsg[1]);
-                            //original ide was to destory the game
-                            //maybe keep it alive and just wait for a restart command
-                            //right now we can jsut send YOUR TURN to everyoen to unlock restarting
-
-                            msgKey = "YOUR_TURN";
-                            SendServerReponse(msgKey, gameClientsList[gameThatEnded]);
-
-                            //can use gameId in msg or look it up based on player id,
-                            //lets use the message value for now;
-                            
-                            //RemoveGameFromServerAndClients(gameThatEnded);
-
-                            break;
-                        case "DROP_GAME":
-
-                            Console.WriteLine("Client {0} dropped their game", clientID);
-                            //can use gameId in msg or look it up based on player id,
-                            //lets use the message value for now;
-                            int gameToDrop = int.Parse(parseMsg[1]); // dont use this, just drop client from all games for nwo
-                            RemoveClientFromGames(clientID);
-
-                            NextTurn(gameId);
-
-                            break;
-                        case "PING":
-
-                            //DO nothing, pinging to keep connection alive
-
-                            //If connected to a game send back game info 
-                            //else just update the server list
-                            if (clientGameList.ContainsKey(clientID) &&
-                                gameClientsList.ContainsKey(clientGameList[clientID]))
-                            {
-                                gameId = clientGameList[clientID];
-                                serverResponse = string.Join(",", "GAME_INFO",
-                                                                gameId,
-                                                                gameClientsList[gameId].Count,
-                                                                gameTurnList[gameId]);
+                                foreach (KeyValuePair<int, List<int>> game in gameClientsList)
+                                {
+                                    serverResponse = string.Join(",", serverResponse, game.Key.ToString(), game.Value.Count.ToString());
+                                }
 
                                 SendServerReponse(serverResponse, clientID);
-                            }
 
-                            serverResponse = "GAME_LIST"; //Send to both i guess
-                            foreach (KeyValuePair<int, List<int>> game in gameClientsList)
-                            {
-                                serverResponse = string.Join(",", serverResponse, game.Key.ToString(), game.Value.Count.ToString());
-                            }
-                            SendServerReponse(serverResponse, clientID);
-                            
-                            Console.WriteLine("Client {0} Pinged", clientID);
+                                break;
+                            case "GAME_INFO":
 
-                            break;
-                        default:
+                                Console.WriteLine("Client {0} wants Info on their game", clientID);
 
-                            serverResponse = "Hey Device! Your Client ID is: " + clientID.ToString() + "\n";
+                                if (clientGameList.ContainsKey(clientID) &&
+                                    gameClientsList.ContainsKey(clientGameList[clientID]))
+                                {
+                                    gameId = clientGameList[clientID];
+                                    serverResponse = string.Join(",", "GAME_INFO",
+                                                                    gameId,
+                                                                    gameClientsList[gameId].Count,
+                                                                    gameTurnList[gameId]);
 
-                            break;
+                                    SendServerReponse(serverResponse, clientID);
+                                }
+
+                                break;
+                            case "JOIN_GAME":
+
+                                Console.WriteLine("Client {0} wants to Join a Game", clientID);
+
+                                int gameIdToJoin = int.Parse(parseMsg[1]);
+
+                                if (!gameClientsList[gameIdToJoin].Contains(clientID))
+                                    gameClientsList[gameIdToJoin].Add(clientID);
+
+                                if (!clientGameList.ContainsKey(clientID))
+                                {
+                                    clientGameList.Add(clientID, gameIdToJoin);
+                                }
+                                else
+                                {
+                                    clientGameList[clientID] = gameIdToJoin;
+                                }
+
+
+                                serverResponse = string.Join(",", "JOINED_GAME", clientGameList[clientID]); //send to player who asked
+
+                                SendServerReponse(serverResponse, clientID);
+
+                                break;
+                            case "TILE_CLICKED":
+
+                                Console.WriteLine("Client {0} clicked a Tile: {1}", clientID, userData);
+                                gameId = clientGameList[clientID];
+
+                                SendServerReponse(userData, gameClientsList[gameId], clientID);
+
+                                NextTurn(gameId);
+
+                                break;
+                            case "TILE_RIGHTCLICKED":
+
+                                Console.WriteLine("Client {0} right clicked a Tile: {1}", clientID, userData);
+                                gameId = clientGameList[clientID];
+                                SendServerReponse(userData, gameClientsList[gameId], clientID);
+
+                                break;
+                            case "RESTART":
+
+                                Console.WriteLine("Client {0} wanted to play again: {1}", clientID, userData);
+                                gameId = clientGameList[clientID];
+                                SendServerReponse(userData, gameClientsList[gameId], clientID);
+                                NextTurn(gameId);
+                                break;
+                            case "START_GAME":
+
+                                Console.WriteLine("Client {0} Sent a Bomb Grid and Tile Click", clientID);
+
+                                //send it out to each player in the game
+                                gameId = clientGameList[clientID];
+                                SendServerReponse(userData, gameClientsList[gameId], clientID);
+
+                                NextTurn(gameId);
+
+                                break;
+                            case "END_GAME":
+
+                                Console.WriteLine("Client {0} reported Game Over", clientID);
+                                int gameThatEnded = int.Parse(parseMsg[1]);
+                                //original ide was to destory the game
+                                //maybe keep it alive and just wait for a restart command
+                                //right now we can jsut send YOUR TURN to everyoen to unlock restarting
+
+                                msgKey = "YOUR_TURN";
+                                SendServerReponse(msgKey, gameClientsList[gameThatEnded]);
+
+                                //can use gameId in msg or look it up based on player id,
+                                //lets use the message value for now;
+
+                                //RemoveGameFromServerAndClients(gameThatEnded);
+
+                                break;
+                            case "DROP_GAME":
+
+                                Console.WriteLine("Client {0} dropped their game", clientID);
+                                //can use gameId in msg or look it up based on player id,
+                                //lets use the message value for now;
+                                int gameToDrop = int.Parse(parseMsg[1]); // dont use this, just drop client from all games for nwo
+                                RemoveClientFromGames(clientID);
+
+                                NextTurn(gameId);
+
+                                break;
+                            case "PING":
+
+                                //DO nothing, pinging to keep connection alive
+
+                                //If connected to a game send back game info 
+                                //else just update the server list
+                                if (clientGameList.ContainsKey(clientID) &&
+                                    gameClientsList.ContainsKey(clientGameList[clientID]))
+                                {
+                                    gameId = clientGameList[clientID];
+                                    serverResponse = string.Join(",", "GAME_INFO",
+                                                                    gameId,
+                                                                    gameClientsList[gameId].Count,
+                                                                    gameTurnList[gameId]);
+
+                                    SendServerReponse(serverResponse, clientID);
+                                }
+
+                                serverResponse = "GAME_LIST"; //Send to both i guess
+                                foreach (KeyValuePair<int, List<int>> game in gameClientsList)
+                                {
+                                    serverResponse = string.Join(",", serverResponse, game.Key.ToString(), game.Value.Count.ToString());
+                                }
+                                SendServerReponse(serverResponse, clientID);
+
+                                Console.WriteLine("Client {0} Pinged", clientID);
+
+                                break;
+                            default:
+
+                                serverResponse = "Hey Device! Your Client ID is: " + clientID.ToString() + "\n";
+
+                                break;
+
+                        }
+                        PrintServerState();
 
                     }
-                    PrintServerState();
-
-
                 }
 
                 Console.WriteLine("Closing Client ID {0}, timeout 5000ms", clientID);
