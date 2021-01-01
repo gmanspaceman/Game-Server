@@ -127,7 +127,7 @@ namespace Game_Server
                     carryData = string.Empty;
 
                     inputBuffer = stream.Read(buffer, 0, buffer.Length);
-                    userData = Encoding.ASCII.GetString(buffer, 0, inputBuffer);
+                    userData += Encoding.ASCII.GetString(buffer, 0, inputBuffer);
 
                     Queue<string> validMessages = new Queue<string>();
                     bool debugMsgQueueingAndCarry = true;
