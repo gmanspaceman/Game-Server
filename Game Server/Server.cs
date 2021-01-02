@@ -5,6 +5,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 
 namespace Game_Server
@@ -25,6 +26,8 @@ namespace Game_Server
 
         public const string eom = "<EOM>";
 
+        public bool isWebSocket = false;
+
         public Server(string ip, int port)
         {
             IPAddress localAddr = IPAddress.Any; //vs IPAddress.Parse(ip);
@@ -32,10 +35,6 @@ namespace Game_Server
             server.Start();
             StartListener();
 
-        }
-        public string NumberOfConnections()
-        {
-            return clientsList.Count.ToString();
         }
         public void ListConnectedUsers()
         {
@@ -98,12 +97,12 @@ namespace Game_Server
             }
             ListConnectedUsers();
 
-
             Byte[] buffer = new Byte[1024];
             int inputBuffer;
             string userData = string.Empty;
             string carryData = string.Empty;
             
+
             try
             {
                 Stopwatch lastComm = new Stopwatch();
@@ -130,7 +129,25 @@ namespace Game_Server
                     carryData = string.Empty;
 
                     inputBuffer = stream.Read(buffer, 0, buffer.Length);
-                    userData += Encoding.ASCII.GetString(buffer, 0, inputBuffer);
+                    string data = Encoding.UTF8.GetString(buffer, 0, inputBuffer);
+                    
+                    //This mis the newebsocket connection
+                    if (new Regex("^GET").IsMatch(data))
+                    {
+                        Console.WriteLine(data);
+                        Byte [] rsp = ServerWebSock.ReplyToGETHandshake(data);
+                        stream.Write(rsp, 0, rsp.Length);
+
+                        isWebSocket = true;
+                        continue;
+                    }
+                    if(isWebSocket)
+                    {
+                        data = ServerWebSock.DecodeMessage(buffer);
+                    }
+
+
+                    userData += data;
 
                     Queue<string> validMessages = new Queue<string>();
                     bool debugMsgQueueingAndCarry = false;
@@ -549,48 +566,41 @@ namespace Game_Server
         public void SendServerReponse(string serverResponse, int clientId)
         {
             SendServer(clientsList[clientId], serverResponse);
-            //Byte[] serverResponseBytes = System.Text.Encoding.ASCII.GetBytes(serverResponse);
-            //clientsList[clientId].Write(serverResponseBytes, 0, serverResponseBytes.Length);
-            //Console.WriteLine("{1}: Sent: {0}", serverResponse, Thread.CurrentThread.ManagedThreadId);
         }
         public void SendServerReponse(string serverResponse, List<int> clientIdList)
         {
-            //Byte[] serverResponseBytes = System.Text.Encoding.ASCII.GetBytes(serverResponse);
             foreach (int clientId in clientIdList)
             {
                 SendServer(clientsList[clientId], serverResponse);
-                //clientsList[clientId].Write(serverResponseBytes, 0, serverResponseBytes.Length);
-                //Console.WriteLine("{1}: Sent: {0}", serverResponse, Thread.CurrentThread.ManagedThreadId);
             }
         }
         public void SendServerReponse(string serverResponse)
         {
-            //Byte[] serverResponseBytes = System.Text.Encoding.ASCII.GetBytes(serverResponse);
             foreach (KeyValuePair<int,NetworkStream> clientId in clientsList)
             {
                 SendServer(clientId.Value, serverResponse);
-                //clientsList[clientId].Write(serverResponseBytes, 0, serverResponseBytes.Length);
-                //Console.WriteLine("{1}: Sent: {0}", serverResponse, Thread.CurrentThread.ManagedThreadId);
             }
         }
         public void SendServerReponse(string serverResponse, List<int> clientIdList, int clientToExclude)
         {
-            //Byte[] serverResponseBytes = System.Text.Encoding.ASCII.GetBytes(serverResponse);
             foreach (int clientId in clientIdList)
             {
                 if (clientId == clientToExclude)
                     continue;
                 SendServer(clientsList[clientId], serverResponse);
-
-                //clientsList[clientId].Write(serverResponseBytes, 0, serverResponseBytes.Length);
-                //Console.WriteLine("{1}: Sent: {0}", serverResponse, Thread.CurrentThread.ManagedThreadId);
             }
         }
         public void SendServer(NetworkStream n, string msg)
         {
             msg += eom; //append EOM marker
 
-            Byte[] msgBytes = System.Text.Encoding.ASCII.GetBytes(msg);
+            Byte[] msgBytes = System.Text.Encoding.UTF8.GetBytes(msg);
+
+            if(isWebSocket)
+            {
+                msgBytes = ServerWebSock.EncodeMessageToSend(msg);
+            }
+
             n.Write(msgBytes, 0, msgBytes.Length);
             Console.WriteLine("{1}: Sent: {0}", msg, Thread.CurrentThread.ManagedThreadId);
         }
