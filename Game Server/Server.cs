@@ -440,6 +440,7 @@ namespace Game_Server
                             default:
 
                                 serverResponse = "Hey Device! Your Client ID is: " + clientID.ToString() + "\n";
+                                SendServerReponse(serverResponse, clientID);
 
                                 break;
 
