@@ -226,7 +226,7 @@ namespace Game_Server
                                 serverResponse = string.Join(",", "JOINED_GAME", clientGameList[clientID]); //send to player who asked
 
                                 SendServerReponse(serverResponse, clientID);
-
+                                BroadcastOutServerList();
                                 break;
                             case "GET_GAMES":
 
@@ -289,6 +289,7 @@ namespace Game_Server
                                     GetGameFromPlayerTurn(gameIdToJoin);
                                 }
 
+                                BroadcastOutServerList();
                                 break;
                             case "MID_GAME":
 
@@ -365,7 +366,7 @@ namespace Game_Server
                                 RemoveClientFromGames(clientID);
 
                                 NextTurn(gameId);
-
+                                BroadcastOutServerList();
                                 break;
                             case "PING":
 
@@ -385,12 +386,7 @@ namespace Game_Server
                                     SendServerReponse(serverResponse, clientID);
                                 }
 
-                                serverResponse = "GAME_LIST"; //Send to both i guess
-                                foreach (KeyValuePair<int, List<int>> game in gameClientsList)
-                                {
-                                    serverResponse = string.Join(",", serverResponse, game.Key.ToString(), game.Value.Count.ToString());
-                                }
-                                SendServerReponse(serverResponse, clientID);
+                                
 
                                 Console.WriteLine("Client {0} Pinged", clientID);
 
@@ -428,6 +424,16 @@ namespace Game_Server
             }
             ListConnectedUsers();
         }
+        public void BroadcastOutServerList()
+        {
+            string serverResponse = "GAME_LIST"; //Send to both i guess
+            foreach (KeyValuePair<int, List<int>> game in gameClientsList)
+            {
+                serverResponse = string.Join(",", serverResponse, game.Key.ToString(), game.Value.Count.ToString());
+            }
+            SendServerReponse(serverResponse);
+        }
+
         public void NextTurn(int gameId)
         {
             if (gameClientsList.ContainsKey(gameId))
@@ -489,6 +495,7 @@ namespace Game_Server
                         gameTurnList.Remove(game.Key);
                         gamePlayingList.Remove(game.Key);
                         gameJoiningActiveGame.Remove(game.Key);
+                        BroadcastOutServerList();
                     }   
 
                 }
@@ -502,10 +509,10 @@ namespace Game_Server
             if (gameClientsList.ContainsKey(gameId))
             {
                 gameClientsList.Remove(gameId);
-
                 gameTurnList.Remove(gameId);
                 gamePlayingList.Remove(gameId);
                 gameJoiningActiveGame.Remove(gameId);
+                BroadcastOutServerList();
             }
 
             foreach (KeyValuePair<int, int> client in clientGameList)
@@ -547,6 +554,16 @@ namespace Game_Server
             foreach (int clientId in clientIdList)
             {
                 SendServer(clientsList[clientId], serverResponse);
+                //clientsList[clientId].Write(serverResponseBytes, 0, serverResponseBytes.Length);
+                //Console.WriteLine("{1}: Sent: {0}", serverResponse, Thread.CurrentThread.ManagedThreadId);
+            }
+        }
+        public void SendServerReponse(string serverResponse)
+        {
+            //Byte[] serverResponseBytes = System.Text.Encoding.ASCII.GetBytes(serverResponse);
+            foreach (KeyValuePair<int,NetworkStream> clientId in clientsList)
+            {
+                SendServer(clientId.Value, serverResponse);
                 //clientsList[clientId].Write(serverResponseBytes, 0, serverResponseBytes.Length);
                 //Console.WriteLine("{1}: Sent: {0}", serverResponse, Thread.CurrentThread.ManagedThreadId);
             }
