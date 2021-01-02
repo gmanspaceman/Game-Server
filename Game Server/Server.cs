@@ -132,7 +132,7 @@ namespace Game_Server
                     string data = Encoding.UTF8.GetString(buffer, 0, inputBuffer);
                     
                     //This mis the newebsocket connection
-                    if (new Regex("^GET").IsMatch(data))
+                    if (new Regex("^GET[^_]").IsMatch(data))
                     {
                         Console.WriteLine(data);
                         Byte [] rsp = ServerWebSock.ReplyToGETHandshake(data);
