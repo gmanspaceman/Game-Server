@@ -109,6 +109,9 @@ namespace Game_Server
                 Stopwatch lastComm = new Stopwatch();
                 lastComm.Start();
 
+                //new user, request basic information
+
+
                 while (lastComm.ElapsedMilliseconds < 10000)
                 {
                     if (!stream.DataAvailable)
@@ -371,6 +374,8 @@ namespace Game_Server
                             case "PING":
 
                                 //DO nothing, pinging to keep connection alive
+
+                                SendServerReponse("PONG", clientID);
 
                                 //If connected to a game send back game info 
                                 //else just update the server list
