@@ -143,9 +143,30 @@ namespace Game_Server
                     }
                     if(isWebSocket)
                     {
-                        Console.WriteLine(data);
-                        data = ServerWebSock.DecodeMessage(buffer);
-                        //Console.WriteLine(data);
+                        if ((buffer[0] & (byte)ServerWebSock.Opcode.CloseConnection) == (byte)ServerWebSock.Opcode.CloseConnection)
+                        {
+                            // Close connection request.
+                            Console.WriteLine("Client disconnected.");
+                            //fornow gonna let timeout code kick
+                            //clientSocket.Close();
+                            break;
+                        }
+                        else
+                        {
+                            var receivedPayload = ServerWebSock.ParsePayloadFromFrame(buffer);
+                            var receivedString = Encoding.UTF8.GetString(receivedPayload);
+
+                            Console.WriteLine($"Client: {receivedString}");
+
+                            var response = $"ECHO: {receivedString}";
+                            var dataToSend = ServerWebSock.CreateFrameFromString(response);
+
+                            Console.WriteLine($"Server: {response}");
+
+                            //clientSocket.Send(dataToSend);
+                            stream.Write(dataToSend, 0, dataToSend.Length);
+                            continue;
+                        }
                     }
 
 
