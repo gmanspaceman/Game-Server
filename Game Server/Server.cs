@@ -143,7 +143,7 @@ namespace Game_Server
                     }
                     if(isWebSocket)
                     {
-                        Console.WriteLine(data);
+                        //Console.WriteLine(data);
                         data = ServerWebSock.DecodeMessage(buffer);
                         Console.WriteLine(data);
                     }
