@@ -141,6 +141,7 @@ namespace Game_Server
                         isWebSocket = true;
                         continue;
                     }
+
                     if(isWebSocket)
                     {
                         if ((buffer[0] & (byte)ServerWebSock.Opcode.CloseConnection) == (byte)ServerWebSock.Opcode.CloseConnection)
@@ -153,19 +154,19 @@ namespace Game_Server
                         }
                         else
                         {
-                            var receivedPayload = ServerWebSock.ParsePayloadFromFrame(buffer);
-                            var receivedString = Encoding.UTF8.GetString(receivedPayload);
+                            Byte[] receivedPayload = ServerWebSock.ParsePayloadFromFrame(buffer);
+                            data = Encoding.UTF8.GetString(receivedPayload);
 
-                            Console.WriteLine($"Client: {receivedString}");
+                            Console.WriteLine($"Websocket Client: {data}");
 
-                            var response = $"ECHO: {receivedString}";
-                            var dataToSend = ServerWebSock.CreateFrameFromString(response);
+                            //string response = $"ECHO: {data}";
+                            //Byte[] dataToSend = ServerWebSock.CreateFrameFromString(response);
 
-                            Console.WriteLine($"Server: {response}");
+                            //Console.WriteLine($"Server: {response}");
 
-                            //clientSocket.Send(dataToSend);
-                            stream.Write(dataToSend, 0, dataToSend.Length);
-                            continue;
+                            ////clientSocket.Send(dataToSend);
+                            //stream.Write(dataToSend, 0, dataToSend.Length);
+                            //continue;
                         }
                     }
 
@@ -617,15 +618,21 @@ namespace Game_Server
         {
             msg += eom; //append EOM marker
 
-            Byte[] msgBytes = System.Text.Encoding.UTF8.GetBytes(msg);
-
             if(isWebSocket)
             {
-                msgBytes = ServerWebSock.EncodeMessageToSend(msg);
+                Byte[] dataToSend = ServerWebSock.CreateFrameFromString(msg);
+                n.Write(dataToSend, 0, dataToSend.Length);
+                Console.WriteLine($"Websock Server: {msg}");
+            }
+            else
+            {
+
+                Byte[] msgBytes = System.Text.Encoding.UTF8.GetBytes(msg);
+                n.Write(msgBytes, 0, msgBytes.Length);
+                Console.WriteLine("{1}: Sent: {0}", msg, Thread.CurrentThread.ManagedThreadId);
             }
 
-            n.Write(msgBytes, 0, msgBytes.Length);
-            Console.WriteLine("{1}: Sent: {0}", msg, Thread.CurrentThread.ManagedThreadId);
+            
         }
     }
 }
