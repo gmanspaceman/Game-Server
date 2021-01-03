@@ -138,6 +138,9 @@ namespace Game_Server
                         Byte [] rsp = ServerWebSock.ReplyToGETHandshake(data);
                         stream.Write(rsp, 0, rsp.Length);
 
+                        Console.WriteLine("Resonding with:");
+                        Console.WriteLine(Encoding.UTF8.GetString(rsp));
+
                         isWebSocket = true;
                         continue;
                     }
