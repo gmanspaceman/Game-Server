@@ -26,7 +26,7 @@ namespace Game_Server
 
         public const string eom = "<EOM>";
 
-        public bool isWebSocket = false;
+        
 
         public Server(string ip, int port)
         {
@@ -101,7 +101,7 @@ namespace Game_Server
             int inputBuffer;
             string userData = string.Empty;
             string carryData = string.Empty;
-            
+            bool isWebSocket = false;
 
             try
             {
