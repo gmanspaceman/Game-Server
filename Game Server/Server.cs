@@ -116,7 +116,7 @@ namespace Game_Server
                     if (!stream.DataAvailable)
                     {
                         Thread.Sleep(125); //slowdown thread
-                        continue;
+                        //continue;
                     }
                     lastComm.Restart();
 
