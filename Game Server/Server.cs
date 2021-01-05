@@ -116,7 +116,8 @@ namespace Game_Server
                     if (!stream.DataAvailable)
                     {
                         Thread.Sleep(125); //slowdown thread
-                        //continue;
+                        SendServerReponse("HEEY", clientID);
+                        continue;
                     }
                     lastComm.Restart();
 
@@ -144,8 +145,8 @@ namespace Game_Server
                         isWebSocket = true;
                         continue;
                     }
-                    data = "HEY<EOM>";
-                    if (isWebSocket)
+
+                    if(isWebSocket)
                     {
                         if ((buffer[0] & (byte)ServerWebSock.Opcode.CloseConnection) == (byte)ServerWebSock.Opcode.CloseConnection)
                         {
