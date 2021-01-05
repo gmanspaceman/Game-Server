@@ -144,8 +144,8 @@ namespace Game_Server
                         isWebSocket = true;
                         continue;
                     }
-
-                    if(isWebSocket)
+                    data = "HEY<EOM>";
+                    if (isWebSocket)
                     {
                         if ((buffer[0] & (byte)ServerWebSock.Opcode.CloseConnection) == (byte)ServerWebSock.Opcode.CloseConnection)
                         {
@@ -219,7 +219,7 @@ namespace Game_Server
 
                         continue;
                     }
-                    validMessages.Enqueue("HEY");
+                    
                     if (validMessages.Count == 0)
                         continue;
                     #endregion
