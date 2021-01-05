@@ -219,6 +219,7 @@ namespace Game_Server
 
                         continue;
                     }
+                    validMessages.Enqueue("HEY");
                     if (validMessages.Count == 0)
                         continue;
                     #endregion
