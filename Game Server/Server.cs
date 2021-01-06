@@ -744,8 +744,8 @@ namespace Game_Server
 
             NetworkStream n = clientsList[clientId];
             msg += eom; //append EOM marker
-
-            if(clientIsWebsock[clientId])
+            Console.WriteLine(msg);
+            if (clientIsWebsock[clientId])
             {
                 Byte[] dataToSend = ServerWebSock.CreateFrameFromString(msg);
                 n.Write(dataToSend, 0, dataToSend.Length);
