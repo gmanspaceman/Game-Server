@@ -21,6 +21,8 @@ namespace Game_Server
 
         public static Dictionary<int, Queue<int>> gameJoiningActiveGame = new Dictionary<int, Queue<int>>();
 
+        public static Dictionary<int, List<string>> clientCommandHistory = new Dictionary<int, List<string>>();
+
         public const int maxConnections = 10; //randomly picked
         public const int maxGames = 10; //randomly picked
 
@@ -47,14 +49,26 @@ namespace Game_Server
             {
                 Console.Clear();
                 PrintServerState();
-                for (int i = 0; i < 20; i++)
+                PrintUserHistory();
+                for (int i = 0; i < 10; i++)
                 {
                     Thread.Sleep(100);
                     Console.Write('.');
                 }
             }
         }
-        
+        public void PrintUserHistory()
+        {
+            foreach(KeyValuePair<int, List<string>> k in clientCommandHistory)
+            {
+                Console.WriteLine("----Client Id History----");
+                foreach (string s in k.Value)
+                {
+                    Console.WriteLine(s);
+                }
+                Console.WriteLine("-------------------------");
+            }
+        }
         public void ListConnectedUsers()
         {
             Console.Write("Connected Clients: ");
@@ -110,6 +124,7 @@ namespace Game_Server
                 if (!clientsList.ContainsKey(ii))
                 {
                     clientsList.Add(ii, stream);
+                    clientCommandHistory.Add(ii, new List<string>());
                     clientID = ii;
                     break;
                 }
@@ -276,6 +291,12 @@ namespace Game_Server
                         string msgKey = parseMsg[0];
                         int gameId = -1;
 
+                        if (msgKey != "PING")
+                        {
+                            if (clientCommandHistory.Count >= 5)
+                                clientCommandHistory.Remove(0);
+                            clientCommandHistory[clientID].Add(userData);
+                        }
 
                         switch (msgKey)
                         {
@@ -369,7 +390,7 @@ namespace Game_Server
                                 {
                                     clientGameList[clientID] = gameIdToJoin;
                                 }
-                                serverResponse = string.Join(",", "JOINED_GAME", clientGameList[clientID]); //send to player who asked
+                                serverResponse = string.Join(",", "JOINED_GAME", clientGameList[clientID], clientID); //send to player who asked
 
                                 SendServerReponse(serverResponse, clientID);
 
@@ -403,6 +424,18 @@ namespace Game_Server
                                 if (allowClientDebugPrint)
                                     Console.WriteLine("Client {0} clicked a Tile: {1}", clientID, userData);
                                 
+                                gameId = clientGameList[clientID];
+
+                                SendServerReponse(userData, gameClientsList[gameId], clientID);
+
+                                NextTurn(gameId);
+
+                                break;
+                            case "TILE_LEFTANDRIGHTCLICKED":
+
+                                if (allowClientDebugPrint)
+                                    Console.WriteLine("Client {0} left and right clicked a Tile: {1}", clientID, userData);
+
                                 gameId = clientGameList[clientID];
 
                                 SendServerReponse(userData, gameClientsList[gameId], clientID);
@@ -480,7 +513,6 @@ namespace Game_Server
                                     Console.WriteLine("Client {0} Pinged", clientID);
 
                                 SendServerReponse("PONG", clientID);
-
                                 //If connected to a game send back game info 
                                 //else just update the server list
                                 if (clientGameList.ContainsKey(clientID) &&
@@ -575,6 +607,7 @@ namespace Game_Server
         public void RemoveClientFromServer(int clientId)
         {
             clientsList.Remove(clientId);
+            clientCommandHistory.Remove(clientId);
 
             RemoveClientFromGames(clientId);
         }
