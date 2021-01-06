@@ -61,12 +61,12 @@ namespace Game_Server
         {
             foreach(KeyValuePair<int, List<string>> k in clientCommandHistory)
             {
-                Console.WriteLine("----Client Id History----");
+                Console.WriteLine("----Client Id: {0} History----", k.Key);
                 foreach (string s in k.Value)
                 {
                     Console.WriteLine(s);
                 }
-                Console.WriteLine("-------------------------");
+                Console.WriteLine("------------------------------");
             }
         }
         public void ListConnectedUsers()
@@ -334,7 +334,7 @@ namespace Game_Server
                                 //add this client to player list
 
                                 //serverResponse = "MADE_GAME," + clientGameList[clientID]; //send to player who asked
-                                serverResponse = string.Join(",", "JOINED_GAME", clientGameList[clientID]); //send to player who asked
+                                serverResponse = string.Join(",", "JOINED_GAME", clientGameList[clientID], clientID); //send to player who asked
 
                                 SendServerReponse(serverResponse, clientID);
                                 BroadcastOutServerList();
