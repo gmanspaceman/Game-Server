@@ -116,7 +116,7 @@ namespace Game_Server
             }
             ListConnectedUsers();
 
-            Byte[] buffer = new Byte[1024];
+            Byte[] buffer = new Byte[4 * 1024];
             int inputBuffer;
             string userData = string.Empty;
             string carryData = string.Empty;
@@ -187,9 +187,9 @@ namespace Game_Server
                         }
                         else
                         {
-                            Console.WriteLine("Pre");
+                            //Console.WriteLine("Pre");
                             Byte[] receivedPayload = ServerWebSock.ParsePayloadFromFrame(buffer);
-                            data = Encoding.UTF8.GetString(receivedPayload);
+                            //data = Encoding.UTF8.GetString(receivedPayload);
                             Console.WriteLine("Post");
                             if (allowClientDebugPrint)
                             {
