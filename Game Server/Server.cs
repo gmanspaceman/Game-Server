@@ -293,8 +293,8 @@ namespace Game_Server
 
                         if (msgKey != "PING")
                         {
-                            if (clientCommandHistory.Count >= 5)
-                                clientCommandHistory.Remove(0);
+                            if (clientCommandHistory[clientID].Count >= 5)
+                                clientCommandHistory[clientID].RemoveAt(0);
                             clientCommandHistory[clientID].Add(userData);
                         }
 
