@@ -27,7 +27,7 @@ namespace Game_Server
         public const string eom = "<EOM>";
 
         bool isWebSocket = false;
-        bool allowClientDebugPrint = true;
+        bool allowClientDebugPrint = false;
 
         public Server(string ip, int port)
         {
@@ -47,7 +47,7 @@ namespace Game_Server
             {
                 Console.Clear();
                 PrintServerState();
-                for (int i = 0; i < 100; i++)
+                for (int i = 0; i < 20; i++)
                 {
                     Thread.Sleep(100);
                     Console.Write('.');
