@@ -187,9 +187,10 @@ namespace Game_Server
                         }
                         else
                         {
+                            Console.WriteLine("Pre");
                             Byte[] receivedPayload = ServerWebSock.ParsePayloadFromFrame(buffer);
                             data = Encoding.UTF8.GetString(receivedPayload);
-
+                            Console.WriteLine("Post");
                             if (allowClientDebugPrint)
                             {
                                 Console.WriteLine($"Websocket Client: {data}");
