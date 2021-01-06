@@ -47,7 +47,11 @@ namespace Game_Server
             {
                 Console.Clear();
                 PrintServerState();
-                Thread.Sleep(1000);
+                for (int i = 0; i < 10; i++)
+                {
+                    Thread.Sleep(100);
+                    Console.Write('.');
+                }
             }
         }
         
