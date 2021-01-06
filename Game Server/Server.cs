@@ -27,15 +27,27 @@ namespace Game_Server
         public const string eom = "<EOM>";
 
         bool isWebSocket = false;
+        bool allowClientDebugPrint = false;
 
         public Server(string ip, int port)
         {
             IPAddress localAddr = IPAddress.Any; //vs IPAddress.Parse(ip);
             server = new TcpListener(localAddr, port);
             server.Start();
+
+            Thread serverStatus = new Thread(serverStatusThread);
+            serverStatus.Start();
+
             StartListener();
 
         }
+        public void serverStatusThread()
+        {
+            Console.Clear();
+            PrintServerState();
+            Thread.Sleep(1000);
+        }
+        
         public void ListConnectedUsers()
         {
             Console.Write("Connected Clients: ");
@@ -135,12 +147,19 @@ namespace Game_Server
                     //This mis the newebsocket connection
                     if (new Regex("^GET[^_]").IsMatch(data))
                     {
-                        Console.WriteLine(data);
+                        if (allowClientDebugPrint)
+                        {
+                            Console.WriteLine(data);
+                        }
+                        
                         Byte [] rsp = ServerWebSock.ReplyToGETHandshake(data);
                         stream.Write(rsp, 0, rsp.Length);
 
-                        Console.WriteLine("Resonding with:");
-                        Console.WriteLine(Encoding.UTF8.GetString(rsp));
+                        if (allowClientDebugPrint)
+                        {
+                            Console.WriteLine("Resonding with:");
+                            Console.WriteLine(Encoding.UTF8.GetString(rsp));
+                        }
 
                         isWebSocket = true;
                         continue;
@@ -151,7 +170,10 @@ namespace Game_Server
                         if ((buffer[0] & (byte)ServerWebSock.Opcode.CloseConnection) == (byte)ServerWebSock.Opcode.CloseConnection)
                         {
                             // Close connection request.
-                            Console.WriteLine("Client disconnected.");
+                            if (allowClientDebugPrint)
+                            {
+                                Console.WriteLine("Client disconnected.");
+                            }
                             //fornow gonna let timeout code kick
                             //clientSocket.Close();
                             break;
@@ -161,7 +183,10 @@ namespace Game_Server
                             Byte[] receivedPayload = ServerWebSock.ParsePayloadFromFrame(buffer);
                             data = Encoding.UTF8.GetString(receivedPayload);
 
-                            Console.WriteLine($"Websocket Client: {data}");
+                            if (allowClientDebugPrint)
+                            {
+                                Console.WriteLine($"Websocket Client: {data}");
+                            }
 
                             //string response = $"ECHO: {data}";
                             //Byte[] dataToSend = ServerWebSock.CreateFrameFromString(response);
@@ -192,8 +217,9 @@ namespace Game_Server
                             foreach (string msg in splitInput)
                             {
                                 validMessages.Enqueue(msg.Replace(eom, ""));
-                                if (debugMsgQueueingAndCarry) 
-                                    Console.WriteLine("FullMsgQueued: " + msg);
+                                if (debugMsgQueueingAndCarry)
+                                    if (allowClientDebugPrint)
+                                        Console.WriteLine("FullMsgQueued: " + msg);
                             }
                         }
                         else
@@ -202,12 +228,14 @@ namespace Game_Server
                             for (int ii = 0; ii < splitInput.Length - 1; ii++)
                             {
                                 validMessages.Enqueue(splitInput[ii].Replace(eom, ""));
-                                if (debugMsgQueueingAndCarry) 
-                                    Console.WriteLine("FullMsgQueued: " + splitInput[ii]);
+                                if (debugMsgQueueingAndCarry)
+                                    if (allowClientDebugPrint)
+                                        Console.WriteLine("FullMsgQueued: " + splitInput[ii]);
                             }
                             carryData = splitInput[splitInput.Length - 1];
-                            if (debugMsgQueueingAndCarry) 
-                                Console.WriteLine("CarryData: " + carryData);
+                            if (debugMsgQueueingAndCarry)
+                                if (allowClientDebugPrint)
+                                    Console.WriteLine("CarryData: " + carryData);
                         }
                     }
                     else //patial packet keep the string and append the next read
@@ -215,8 +243,9 @@ namespace Game_Server
                         carryData = userData;
 
                         if (carryData != string.Empty)
-                            if (debugMsgQueueingAndCarry) 
-                                Console.WriteLine("carryData: " + carryData);
+                            if (debugMsgQueueingAndCarry)
+                                if (allowClientDebugPrint)
+                                    Console.WriteLine("carryData: " + carryData);
 
                         continue;
                     }
@@ -229,7 +258,10 @@ namespace Game_Server
                     {
                         userData = validMessages.Dequeue();
 
-                        Console.WriteLine("{1}: Processing: {0}", userData, Thread.CurrentThread.ManagedThreadId);
+                        if (allowClientDebugPrint)
+                        {
+                            Console.WriteLine("{1}: Processing: {0}", userData, Thread.CurrentThread.ManagedThreadId);
+                        }
 
                         string serverResponse = "";
                         string[] parseMsg = userData.Split(",");
@@ -240,7 +272,8 @@ namespace Game_Server
                         switch (msgKey)
                         {
                             case "MAKE_GAME":
-                                Console.WriteLine("Client {0} wants to start a Game", clientID);
+                                if (allowClientDebugPrint)
+                                    Console.WriteLine("Client {0} wants to start a Game", clientID);
 
                                 for (int newGameId = 0; newGameId < maxGames; newGameId++)
                                 {
@@ -279,7 +312,8 @@ namespace Game_Server
                                 break;
                             case "GET_GAMES":
 
-                                Console.WriteLine("Client {0} wants a List of the Games", clientID);
+                                if (allowClientDebugPrint)
+                                    Console.WriteLine("Client {0} wants a List of the Games", clientID);
 
                                 serverResponse = "GAME_LIST"; //Send to both i guess
 
@@ -293,7 +327,8 @@ namespace Game_Server
                                 break;
                             case "GAME_INFO":
 
-                                Console.WriteLine("Client {0} wants Info on their game", clientID);
+                                if (allowClientDebugPrint)
+                                    Console.WriteLine("Client {0} wants Info on their game", clientID);
 
                                 if (clientGameList.ContainsKey(clientID) &&
                                     gameClientsList.ContainsKey(clientGameList[clientID]))
@@ -310,7 +345,8 @@ namespace Game_Server
                                 break;
                             case "JOIN_GAME":
 
-                                Console.WriteLine("Client {0} wants to Join a Game", clientID);
+                                if (allowClientDebugPrint)
+                                    Console.WriteLine("Client {0} wants to Join a Game", clientID);
 
                                 int gameIdToJoin = int.Parse(parseMsg[1]);
 
@@ -342,7 +378,8 @@ namespace Game_Server
                                 break;
                             case "MID_GAME":
 
-                                Console.WriteLine("Client {0} Sent a Mid Game Update: {1}", clientID, userData);
+                                if (allowClientDebugPrint)
+                                    Console.WriteLine("Client {0} Sent a Mid Game Update: {1}", clientID, userData);
                                 gameId = clientGameList[clientID];
 
                                 //send this to whomeverasked
@@ -355,7 +392,9 @@ namespace Game_Server
                                 break;
                             case "TILE_CLICKED":
 
-                                Console.WriteLine("Client {0} clicked a Tile: {1}", clientID, userData);
+                                if (allowClientDebugPrint)
+                                    Console.WriteLine("Client {0} clicked a Tile: {1}", clientID, userData);
+                                
                                 gameId = clientGameList[clientID];
 
                                 SendServerReponse(userData, gameClientsList[gameId], clientID);
@@ -365,21 +404,26 @@ namespace Game_Server
                                 break;
                             case "TILE_RIGHTCLICKED":
 
-                                Console.WriteLine("Client {0} right clicked a Tile: {1}", clientID, userData);
+                                if (allowClientDebugPrint)
+                                    Console.WriteLine("Client {0} right clicked a Tile: {1}", clientID, userData);
+                                
                                 gameId = clientGameList[clientID];
                                 SendServerReponse(userData, gameClientsList[gameId], clientID);
 
                                 break;
                             case "RESTART":
 
-                                Console.WriteLine("Client {0} wanted to play again: {1}", clientID, userData);
+                                if (allowClientDebugPrint)
+                                    Console.WriteLine("Client {0} wanted to play again: {1}", clientID, userData);
+                                
                                 gameId = clientGameList[clientID];
                                 SendServerReponse(userData, gameClientsList[gameId], clientID);
                                 NextTurn(gameId);
                                 break;
                             case "START_GAME":
 
-                                Console.WriteLine("Client {0} Sent a Bomb Grid and Tile Click", clientID);
+                                if (allowClientDebugPrint)
+                                    Console.WriteLine("Client {0} Sent a Bomb Grid and Tile Click", clientID);
 
                                 //send it out to each player in the game
                                 gameId = clientGameList[clientID];
@@ -391,7 +435,9 @@ namespace Game_Server
                                 break;
                             case "END_GAME":
 
-                                Console.WriteLine("Client {0} reported Game Over", clientID);
+                                if (allowClientDebugPrint)
+                                    Console.WriteLine("Client {0} reported Game Over", clientID);
+                                
                                 int gameThatEnded = int.Parse(parseMsg[1]);
                                 gamePlayingList[gameThatEnded] = false;
                                 //original ide was to destory the game
@@ -408,7 +454,9 @@ namespace Game_Server
                                 break;
                             case "DROP_GAME":
 
-                                Console.WriteLine("Client {0} dropped their game", clientID);
+                                if (allowClientDebugPrint) 
+                                    Console.WriteLine("Client {0} dropped their game", clientID);
+                                
                                 //can use gameId in msg or look it up based on player id,
                                 //lets use the message value for now;
                                 int gameToDrop = int.Parse(parseMsg[1]); // dont use this, just drop client from all games for nwo
@@ -420,6 +468,8 @@ namespace Game_Server
                             case "PING":
 
                                 //DO nothing, pinging to keep connection alive
+                                if (allowClientDebugPrint)
+                                    Console.WriteLine("Client {0} Pinged", clientID);
 
                                 SendServerReponse("PONG", clientID);
 
@@ -437,14 +487,15 @@ namespace Game_Server
                                     SendServerReponse(serverResponse, clientID);
                                 }
 
-                                
 
-                                Console.WriteLine("Client {0} Pinged", clientID);
+                                
 
                                 break;
                             default:
 
-                                serverResponse = "Hey Device! Your Client ID is: " + clientID.ToString() + "\n";
+                                if (allowClientDebugPrint)
+                                    serverResponse = "Hey Device! Your Client ID is: " + clientID.ToString() + "\n";
+                                
                                 SendServerReponse(serverResponse, clientID);
 
                                 break;
@@ -452,15 +503,17 @@ namespace Game_Server
                         }
                         //if (msgKey != "PING")
                         //{
-                            PrintServerState();
+                            //PrintServerState();
                         //}
 
                     }
                 }
-
-                Console.WriteLine("Closing Client ID {0}, timeout 5000ms", clientID);
-                //remove clienbt id from list, and any game ariftifacts
-                Console.WriteLine("");
+                if (allowClientDebugPrint)
+                {
+                    Console.WriteLine("Closing Client ID {0}, timeout 5000ms", clientID);
+                    //remove clienbt id from list, and any game ariftifacts
+                    Console.WriteLine("");
+                }
 
                 RemoveClientFromServer(clientID);
 
@@ -470,7 +523,10 @@ namespace Game_Server
             catch (Exception e)
             {
                 //Console.WriteLine("Exception: {0}", e.ToString());
-                Console.WriteLine("Client ID Dropped!: {0}", clientID);
+                if (allowClientDebugPrint)
+                {
+                    Console.WriteLine("Client ID Dropped!: {0}", clientID);
+                }
                 //remove clienbt id from list
                 RemoveClientFromServer(clientID);
             }
@@ -498,8 +554,9 @@ namespace Game_Server
 
                 //Thread.Sleep(125);
                 SendServerReponse("YOUR_TURN", matchingClientid);
-
-                Console.WriteLine("Sent YOUR_TURN to {0}", matchingClientid);
+                
+                if (allowClientDebugPrint)
+                    Console.WriteLine("Sent YOUR_TURN to {0}", matchingClientid);
             }
         }
 
@@ -628,14 +685,16 @@ namespace Game_Server
             {
                 Byte[] dataToSend = ServerWebSock.CreateFrameFromString(msg);
                 n.Write(dataToSend, 0, dataToSend.Length);
-                Console.WriteLine($"Websock Server: {msg}");
+                if (allowClientDebugPrint)
+                    Console.WriteLine($"Websock Server: {msg}");
             }
             else
             {
 
                 Byte[] msgBytes = System.Text.Encoding.UTF8.GetBytes(msg);
                 n.Write(msgBytes, 0, msgBytes.Length);
-                Console.WriteLine("{1}: Sent: {0}", msg, Thread.CurrentThread.ManagedThreadId);
+                if (allowClientDebugPrint)
+                    Console.WriteLine("{1}: Sent: {0}", msg, Thread.CurrentThread.ManagedThreadId);
             }
 
             
