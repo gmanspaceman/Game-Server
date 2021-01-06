@@ -14,6 +14,8 @@ namespace Game_Server
     {
         TcpListener server = null;
         public static Dictionary<int, NetworkStream> clientsList = new Dictionary<int, NetworkStream>();
+        public static Dictionary<int, string> clientNames = new Dictionary<int, string>();
+        public static Dictionary<int, bool> clientIsWebsock = new Dictionary<int, bool>();
         public static Dictionary<int, int> clientGameList = new Dictionary<int, int>(); 
         public static Dictionary<int, List<int>> gameClientsList = new Dictionary<int, List<int>>();
         public static Dictionary<int, int> gameTurnList = new Dictionary<int, int>();
@@ -66,7 +68,7 @@ namespace Game_Server
                 {
                     Console.WriteLine(s);
                 }
-                Console.WriteLine("------------------------------");
+                Console.WriteLine("---------------------------");
             }
         }
         public void ListConnectedUsers()
@@ -125,6 +127,7 @@ namespace Game_Server
                 {
                     clientsList.Add(ii, stream);
                     clientCommandHistory.Add(ii, new List<string>());
+                    clientIsWebsock.Add(ii, false);
                     clientID = ii;
                     break;
                 }
@@ -184,6 +187,7 @@ namespace Game_Server
                         }
 
                         isWebSocket = true;
+                        clientIsWebsock[clientID] = true;
                         continue;
                     }
 
@@ -272,9 +276,6 @@ namespace Game_Server
 
                         continue;
                     }
-                    
-                    if (validMessages.Count == 0)
-                        continue;
                     #endregion
 
                     while (validMessages.Count != 0)
@@ -300,6 +301,21 @@ namespace Game_Server
 
                         switch (msgKey)
                         {
+                            case "I_AM":
+
+                                if (allowClientDebugPrint)
+                                    Console.WriteLine("Client {0} gave their self a name", clientID);
+
+                                if (clientNames.ContainsKey(clientID))
+                                    clientNames[clientID] = parseMsg[1];
+                                else
+                                    clientNames.Add(clientID, parseMsg[1]);
+
+                                //SendServerReponse(serverResponse, clientID);
+                                //send updated name list to everyone
+                                //send updates lists with names maybe
+
+                                break;
                             case "MAKE_GAME":
                                 if (allowClientDebugPrint)
                                     Console.WriteLine("Client {0} wants to start a Game", clientID);
@@ -363,10 +379,11 @@ namespace Game_Server
                                     gameClientsList.ContainsKey(clientGameList[clientID]))
                                 {
                                     gameId = clientGameList[clientID];
+                                    string playerIdent = clientNames.ContainsKey(clientID) ? clientNames[clientID] : gameClientsList[gameId][gameTurnList[gameId]].ToString();
                                     serverResponse = string.Join(",", "GAME_INFO",
                                                                     gameId,
                                                                     gameClientsList[gameId].Count,
-                                                                    gameTurnList[gameId]);
+                                                                    playerIdent);
 
                                     SendServerReponse(serverResponse, clientID);
                                 }
@@ -519,10 +536,11 @@ namespace Game_Server
                                     gameClientsList.ContainsKey(clientGameList[clientID]))
                                 {
                                     gameId = clientGameList[clientID];
+                                    string playerIdent = clientNames.ContainsKey(clientID) ? clientNames[clientID] : gameClientsList[gameId][gameTurnList[gameId]].ToString();
                                     serverResponse = string.Join(",", "GAME_INFO",
                                                                     gameId,
                                                                     gameClientsList[gameId].Count,
-                                                                    gameTurnList[gameId]);
+                                                                    playerIdent);
 
                                     SendServerReponse(serverResponse, clientID);
                                 }
@@ -608,6 +626,9 @@ namespace Game_Server
         {
             clientsList.Remove(clientId);
             clientCommandHistory.Remove(clientId);
+            clientIsWebsock.Remove(clientId);
+            if (clientNames.ContainsKey(clientId))
+                clientNames.Remove(clientId);
 
             RemoveClientFromGames(clientId);
         }
@@ -693,20 +714,20 @@ namespace Game_Server
         
         public void SendServerReponse(string serverResponse, int clientId)
         {
-            SendServer(clientsList[clientId], serverResponse);
+            SendServer(clientId, serverResponse);
         }
         public void SendServerReponse(string serverResponse, List<int> clientIdList)
         {
             foreach (int clientId in clientIdList)
             {
-                SendServer(clientsList[clientId], serverResponse);
+                SendServer(clientId, serverResponse);
             }
         }
         public void SendServerReponse(string serverResponse)
         {
             foreach (KeyValuePair<int,NetworkStream> clientId in clientsList)
             {
-                SendServer(clientId.Value, serverResponse);
+                SendServer(clientId.Key, serverResponse);
             }
         }
         public void SendServerReponse(string serverResponse, List<int> clientIdList, int clientToExclude)
@@ -715,14 +736,16 @@ namespace Game_Server
             {
                 if (clientId == clientToExclude)
                     continue;
-                SendServer(clientsList[clientId], serverResponse);
+                SendServer(clientId, serverResponse);
             }
         }
-        public void SendServer(NetworkStream n, string msg)
+        public void SendServer(int clientId, string msg)
         {
+
+            NetworkStream n = clientsList[clientId];
             msg += eom; //append EOM marker
 
-            if(isWebSocket)
+            if(clientIsWebsock[clientId])
             {
                 Byte[] dataToSend = ServerWebSock.CreateFrameFromString(msg);
                 n.Write(dataToSend, 0, dataToSend.Length);
@@ -731,7 +754,6 @@ namespace Game_Server
             }
             else
             {
-
                 Byte[] msgBytes = System.Text.Encoding.UTF8.GetBytes(msg);
                 n.Write(msgBytes, 0, msgBytes.Length);
                 if (allowClientDebugPrint)
