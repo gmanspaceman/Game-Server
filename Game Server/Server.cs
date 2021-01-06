@@ -43,9 +43,12 @@ namespace Game_Server
         }
         public void serverStatusThread()
         {
-            Console.Clear();
-            PrintServerState();
-            Thread.Sleep(1000);
+            while (true)
+            {
+                Console.Clear();
+                PrintServerState();
+                Thread.Sleep(1000);
+            }
         }
         
         public void ListConnectedUsers()
