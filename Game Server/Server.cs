@@ -383,6 +383,7 @@ namespace Game_Server
                                     serverResponse = string.Join(",", "GAME_INFO",
                                                                     gameId,
                                                                     gameClientsList[gameId].Count,
+                                                                    gameClientsList[gameId][gameTurnList[gameId]],
                                                                     playerIdent);
 
                                     SendServerReponse(serverResponse, clientID);
@@ -540,6 +541,7 @@ namespace Game_Server
                                     serverResponse = string.Join(",", "GAME_INFO",
                                                                     gameId,
                                                                     gameClientsList[gameId].Count,
+                                                                    gameClientsList[gameId][gameTurnList[gameId]],
                                                                     playerIdent);
 
                                     SendServerReponse(serverResponse, clientID);
