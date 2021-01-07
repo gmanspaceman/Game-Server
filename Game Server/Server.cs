@@ -402,7 +402,7 @@ namespace Game_Server
 
                                     int playerTurnId = gameClientsList[gameId][gameTurnList[gameId]];
                                     
-                                    string playerIdent = clientNames.ContainsKey(clientID) ? clientNames[playerTurnId] : playerTurnId.ToString();
+                                    string playerIdent = clientNames.ContainsKey(playerTurnId) ? clientNames[playerTurnId] : playerTurnId.ToString();
                                     serverResponse = string.Join(",", "GAME_INFO",
                                                                     gameId,
                                                                     gameClientsList[gameId].Count,
@@ -562,7 +562,7 @@ namespace Game_Server
                                     gameId = clientGameList[clientID];
                                     int playerTurnId = gameClientsList[gameId][gameTurnList[gameId]];
                                     
-                                    string playerIdent = clientNames.ContainsKey(clientID) ? clientNames[playerTurnId] : playerTurnId.ToString();
+                                    string playerIdent = clientNames.ContainsKey(playerTurnId) ? clientNames[playerTurnId] : playerTurnId.ToString();
                                     serverResponse = string.Join(",", "GAME_INFO",
                                                                     gameId,
                                                                     gameClientsList[gameId].Count,
