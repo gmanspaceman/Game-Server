@@ -398,9 +398,10 @@ namespace Game_Server
                                 if (clientGameList.ContainsKey(clientID) &&
                                     gameClientsList.ContainsKey(clientGameList[clientID]))
                                 {
-                                    int playerTurnId = gameClientsList[gameId][gameTurnList[gameId]];
-
                                     gameId = clientGameList[clientID];
+
+                                    int playerTurnId = gameClientsList[gameId][gameTurnList[gameId]];
+                                    
                                     string playerIdent = clientNames.ContainsKey(clientID) ? clientNames[playerTurnId] : playerTurnId.ToString();
                                     serverResponse = string.Join(",", "GAME_INFO",
                                                                     gameId,
@@ -558,9 +559,9 @@ namespace Game_Server
                                 if (clientGameList.ContainsKey(clientID) &&
                                     gameClientsList.ContainsKey(clientGameList[clientID]))
                                 {
-                                    int playerTurnId = gameClientsList[gameId][gameTurnList[gameId]];
-
                                     gameId = clientGameList[clientID];
+                                    int playerTurnId = gameClientsList[gameId][gameTurnList[gameId]];
+                                    
                                     string playerIdent = clientNames.ContainsKey(clientID) ? clientNames[playerTurnId] : playerTurnId.ToString();
                                     serverResponse = string.Join(",", "GAME_INFO",
                                                                     gameId,
