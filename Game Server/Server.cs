@@ -71,6 +71,26 @@ namespace Game_Server
                 Console.WriteLine("---------------------------");
             }
         }
+        public void PrintServerState()
+        {
+            Console.WriteLine("");
+            Console.WriteLine("==============SERVER STATE===============");
+            Console.WriteLine("-----------CONNECTED CLIENTS-------------");
+            foreach (int clientId in clientsList.Keys)
+                Console.WriteLine("Client {0} is connected", clientId);
+            Console.WriteLine("--------------ACTIVE GAMES---------------");
+            foreach (KeyValuePair<int, List<int>> k in gameClientsList)
+            {
+                Console.WriteLine("Game {0} has these clients: {1}. It's {2} turn. Playing is {3}",
+                                    k.Key,
+                                    string.Join(",", k.Value),
+                                    gameTurnList[k.Key],
+                                    gamePlayingList[k.Key]);
+            }
+            Console.WriteLine("============END SERVER STATE=============");
+            Console.WriteLine("");
+
+        }
         public void ListConnectedUsers()
         {
             Console.Write("Connected Clients: ");
@@ -378,8 +398,10 @@ namespace Game_Server
                                 if (clientGameList.ContainsKey(clientID) &&
                                     gameClientsList.ContainsKey(clientGameList[clientID]))
                                 {
+                                    int playerTurnId = gameClientsList[gameId][gameTurnList[gameId]];
+
                                     gameId = clientGameList[clientID];
-                                    string playerIdent = clientNames.ContainsKey(clientID) ? clientNames[clientID] : gameClientsList[gameId][gameTurnList[gameId]].ToString();
+                                    string playerIdent = clientNames.ContainsKey(clientID) ? clientNames[playerTurnId] : playerTurnId.ToString();
                                     serverResponse = string.Join(",", "GAME_INFO",
                                                                     gameId,
                                                                     gameClientsList[gameId].Count,
@@ -536,8 +558,10 @@ namespace Game_Server
                                 if (clientGameList.ContainsKey(clientID) &&
                                     gameClientsList.ContainsKey(clientGameList[clientID]))
                                 {
+                                    int playerTurnId = gameClientsList[gameId][gameTurnList[gameId]];
+
                                     gameId = clientGameList[clientID];
-                                    string playerIdent = clientNames.ContainsKey(clientID) ? clientNames[clientID] : gameClientsList[gameId][gameTurnList[gameId]].ToString();
+                                    string playerIdent = clientNames.ContainsKey(clientID) ? clientNames[playerTurnId] : playerTurnId.ToString();
                                     serverResponse = string.Join(",", "GAME_INFO",
                                                                     gameId,
                                                                     gameClientsList[gameId].Count,
@@ -637,44 +661,27 @@ namespace Game_Server
         public void RemoveClientFromGames(int clientId)
         {
             //clientsList.Remove(clientId);
-
+            //better if go through those games and remove client and then remove game
+            //todo for later i guess
             if (clientGameList.ContainsKey(clientId))
+            {
+                int gameId = clientGameList[clientId];
+
+                if (gameClientsList.ContainsKey(gameId))        //has to contain it 
+                    gameClientsList[gameId].Remove(clientId);
+
                 clientGameList.Remove(clientId);
 
-            
-
-            foreach (KeyValuePair<int, List<int>> game in gameClientsList)
-            {
-                //incremnt turn on that game if it was his turn
-                //i think its easier to incmrent then remove
-                //id rather do it the other wya but i think it messes
-                //up the mod math and i dont want to look at it right now
-                if (game.Value.Contains(clientId))
+                if (gameClientsList[gameId].Count == 0)     //if no one left in the game destroy it
                 {
-                    if (game.Value.Count > 1)
-                    {
-                        if (game.Value[gameTurnList[game.Key]] == clientId)
-                        {
-                            NextTurn(game.Key);
-                        }
-                    }
-
-                    game.Value.Remove(clientId);
-                
-
-                    if (gameClientsList[game.Key].Count == 0)
-                    {
-                        gameClientsList.Remove(game.Key);
-                        gameTurnList.Remove(game.Key);
-                        gamePlayingList.Remove(game.Key);
-                        gameJoiningActiveGame.Remove(game.Key);
-                        BroadcastOutServerList();
-                    }   
-
+                    RemoveGameFromServerAndClients(gameId);
+                    //this broadcasts its own
                 }
-
-
-
+                else
+                {
+                    NextTurn(gameId);
+                    BroadcastOutServerList();
+                }
             }
         }
         public void RemoveGameFromServerAndClients(int gameId)
@@ -685,35 +692,19 @@ namespace Game_Server
                 gameTurnList.Remove(gameId);
                 gamePlayingList.Remove(gameId);
                 gameJoiningActiveGame.Remove(gameId);
+                
+                foreach (int client in gameClientsList[gameId])
+                {
+                    clientGameList.Remove(client);
+                }
+
                 BroadcastOutServerList();
             }
-
-            foreach (KeyValuePair<int, int> client in clientGameList)
-            {
-                if (client.Value == gameId)
-                    clientGameList[client.Key] = -1; //maybe i can remove client form this list instead
-            }
         }
-        public void PrintServerState()
-        {
-            Console.WriteLine("");
-            Console.WriteLine("==============SERVER STATE===============");
-            Console.WriteLine("-----------CONNECTED CLIENTS-------------");
-            foreach (int clientId in clientsList.Keys)
-                Console.WriteLine("Client {0} is connected", clientId);
-            Console.WriteLine("--------------ACTIVE GAMES---------------");
-            foreach (KeyValuePair<int, List<int>> k in gameClientsList)
-            {
-                Console.WriteLine("Game {0} has these clients: {1}. It's {2} turn. Playing is {3}", k.Key, string.Join(",",k.Value), gameTurnList[k.Key], gamePlayingList[k.Key]);
-            }
-            Console.WriteLine("============END SERVER STATE=============");
-            Console.WriteLine("");
 
-        }
 
 
         //These shoudl be able to be combine but i had an issue with something
-        
         public void SendServerReponse(string serverResponse, int clientId)
         {
             SendServer(clientId, serverResponse);
@@ -743,7 +734,6 @@ namespace Game_Server
         }
         public void SendServer(int clientId, string msg)
         {
-
             NetworkStream n = clientsList[clientId];
             msg += eom; //append EOM marker
             
@@ -761,8 +751,6 @@ namespace Game_Server
                 if (allowClientDebugPrint)
                     Console.WriteLine("{1}: Sent: {0}", msg, Thread.CurrentThread.ManagedThreadId);
             }
-
-            
         }
     }
 }
