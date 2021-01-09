@@ -639,29 +639,35 @@ namespace Game_Server
         }
         public void RemoveClientFromGames(int clientId)
         {
-            if (Players.ContainsKey(clientId) && Players[clientId].InGame)
+            if (Players.ContainsKey(clientId))
             {
-                int gameId = Players[clientId].CurrentGameId;
-
-                if (Games.ContainsKey(gameId) && Games[gameId].DropPlayer(clientId))
+                if (Players[clientId].InGame)
                 {
-                    if (Games[gameId].Players.Count != 0)
+                    int gameId = Players[clientId].CurrentGameId;
+
+                    if (Games.ContainsKey(gameId))
                     {
-                        string serverResponse = string.Join(",", "GAME_UPDATE",
-                                                        Games[gameId].GetTurnPlayerId(),
-                                                        (int)Games[gameId].GameState);
+                        if (Games[gameId].DropPlayer(clientId))
+                        {
+                            if (Games[gameId].Players.Count != 0)
+                            {
+                                string serverResponse = string.Join(",", "GAME_UPDATE",
+                                                                Games[gameId].GetTurnPlayerId(),
+                                                                (int)Games[gameId].GameState);
 
-                        SendServerReponse(serverResponse, Games[gameId].Players);
+                                SendServerReponse(serverResponse, Games[gameId].Players);
+                            }
+                        }
                     }
-                }
 
-                if (Games[gameId].Players.Count == 0)
-                {
-                    RemoveGameFromServer(gameId);
-                }
-                else
-                {
-                    BroadcastOutServerList();
+                    if (Games[gameId].Players.Count == 0)
+                    {
+                        RemoveGameFromServer(gameId);
+                    }
+                    else
+                    {
+                        BroadcastOutServerList();
+                    }
                 }
             }
 
