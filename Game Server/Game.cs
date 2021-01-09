@@ -57,10 +57,14 @@ namespace Game_Server
             {
                 CurrentPlayerTurnIndex = (CurrentPlayerTurnIndex + 1) % Players.Count;
                 //auto notify people of turn change
+                if (Players.Contains(playerIdWantingToDrop))
+                    Players.Remove(playerIdWantingToDrop); 
+                
                 return true;
             }
             if(Players.Contains(playerIdWantingToDrop))
                 Players.Remove(playerIdWantingToDrop);
+           
             return false;
         }
         public void NextTurn()
