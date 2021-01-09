@@ -626,7 +626,8 @@ namespace Game_Server
         {
             RemoveClientFromGames(clientId);
             //Players[clientId].DropGame();
-            Players.Remove(clientId);
+            if (Players.ContainsKey(clientId))
+                Players.Remove(clientId);
 
             //clientsList.Remove(clientId);
             //clientCommandHistory.Remove(clientId);
@@ -641,7 +642,8 @@ namespace Game_Server
             if (Players.ContainsKey(clientId) && Players[clientId].InGame)
             {
                 int gameId = Players[clientId].CurrentGameId;
-                if (Games[gameId].DropPlayer(clientId))
+
+                if (Games.ContainsKey(gameId) && Games[gameId].DropPlayer(clientId))
                 {
                     if (Games[gameId].Players.Count != 0)
                     {
