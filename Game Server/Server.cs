@@ -202,6 +202,7 @@ namespace Game_Server
                                         SendServerReponse(serverResponse, ThisPlayer.ClientId);
                                         BroadcastOutServerList();
 
+                                        break;
                                     }
                                 }
 
