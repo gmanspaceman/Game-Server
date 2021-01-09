@@ -374,8 +374,7 @@ namespace Game_Server
 
                                 gameId = ThisPlayer.CurrentGameId;
 
-                                string gameUpdate = String.Join("",parseMsg.Skip(1));
-                                Games[gameId].CurrentGameState = gameUpdate;
+                                Games[gameId].CurrentGameState = userData;
                                 Games[gameId].NextTurn();
 
                                 //sendupdate to everyone
