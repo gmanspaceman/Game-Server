@@ -188,7 +188,7 @@ namespace Game_Server
                                 {
                                     if(!Games.ContainsKey(newGameId))
                                     {
-                                        Game newGame = new Game(gameId);
+                                        Game newGame = new Game(newGameId);
                                         Games.Add(newGame.GameId, newGame);
 
                                         Games[newGame.GameId].AddPlayer(ThisPlayer.ClientId);
