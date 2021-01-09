@@ -207,55 +207,17 @@ namespace Game_Server
                                         Games[newGame.GameId].AddPlayer(ThisPlayer.ClientId);
                                         ThisPlayer.JoinGame(newGame.GameId);
 
-
                                         serverResponse = string.Join(",", "JOINED_GAME",
-                                                                            newGame.GameId,
-                                                                            (int)newGame.GameState,
-                                                                            newGame.GameId); //send to player who asked
-                                        
+                                                                            (int)Games[newGame.GameId].GameState,
+                                                                            Games[newGame.GameId].GetTurnPlayerId(),
+                                                                            newGame.GameId);
+
                                         SendServerReponse(serverResponse, ThisPlayer.ClientId);
                                         BroadcastOutServerList();
 
                                         break;
                                     }
                                 }
-
-
-                                //for (int newGameId = 0; newGameId < maxGames; newGameId++)
-                                //{
-                                //    if (!gameClientsList.ContainsKey(newGameId))
-                                //    {
-                                //        gameClientsList.Add(newGameId, new List<int>());
-                                //        gamePlayingList.Add(newGameId, false);
-                                //        gameJoiningActiveGame.Add(newGameId, new Queue<int>());
-
-                                //        gameClientsList[newGameId].Add(clientID);
-                                //        if (!clientGameList.ContainsKey(clientID))
-                                //        {
-                                //            clientGameList.Add(clientID, newGameId);
-                                //        }
-                                //        else
-                                //        {
-                                //            clientGameList[clientID] = newGameId;
-                                //        }
-
-                                //        if (gameTurnList.ContainsKey(newGameId))
-                                //            gameTurnList.Remove(newGameId);
-                                //        gameTurnList[newGameId] = 0; //its players 0s turn
-
-                                //        break;
-                                //    }
-                                //}
-
-                                //find lowest availble gameIDnot used
-                                //add it to the dict
-                                //add this client to player list
-
-                                //serverResponse = "MADE_GAME," + clientGameList[clientID]; //send to player who asked
-                                //serverResponse = string.Join(",", "JOINED_GAME", clientGameList[clientID], clientID); //send to player who asked
-
-                                //SendServerReponse(serverResponse, clientID);
-                                //BroadcastOutServerList();
                                 break;
                             case "GET_GAMES":
 
@@ -271,11 +233,6 @@ namespace Game_Server
 
                                 SendServerReponse(serverResponse, ThisPlayer.ClientId);
 
-                                //foreach (KeyValuePair<int, List<int>> game in gameClientsList)
-                                //{
-                                //    serverResponse = string.Join(",", serverResponse, game.Key.ToString(), game.Value.Count.ToString());
-                                //}
-
                                 break;
                             case "GAME_INFO":
 
@@ -286,23 +243,6 @@ namespace Game_Server
                                 {
                                     SendGameInfo(ThisPlayer.CurrentGameId, ThisPlayer.ClientId);
                                 }
-
-                                //if (clientGameList.ContainsKey(clientID) &&
-                                //    gameClientsList.ContainsKey(clientGameList[clientID]))
-                                //{
-                                //    gameId = clientGameList[clientID];
-
-                                //    int playerTurnId = gameClientsList[gameId][gameTurnList[gameId]];
-
-                                //    string playerIdent = clientNames.ContainsKey(playerTurnId) ? clientNames[playerTurnId] : playerTurnId.ToString();
-                                //    serverResponse = string.Join(",", "GAME_INFO",
-                                //                                    gameId,
-                                //                                    gameClientsList[gameId].Count,
-                                //                                    gameClientsList[gameId][gameTurnList[gameId]],
-                                //                                    playerIdent);
-
-                                //    SendServerReponse(serverResponse, clientID);
-                                //}
 
                                 break;
                             case "JOIN_GAME":
@@ -322,18 +262,6 @@ namespace Game_Server
                                     }
                                     ThisPlayer.JoinGame(gameIdToJoin);
                                     Games[gameIdToJoin].AddPlayer(ThisPlayer.ClientId);
-                                
-                                    //if (!gameClientsList[gameIdToJoin].Contains(clientID))
-                                    //    gameClientsList[gameIdToJoin].Add(clientID);
-
-                                    //if (!clientGameList.ContainsKey(clientID))
-                                    //{
-                                    //    clientGameList.Add(clientID, gameIdToJoin);
-                                    //}
-                                    //else
-                                    //{
-                                    //    clientGameList[clientID] = gameIdToJoin;
-                                    //}
 
                                     if (Games[gameIdToJoin].GameState == Game.GamePhase.PreGame)
                                     {
@@ -361,14 +289,6 @@ namespace Game_Server
                                     SendServerReponse(serverResponse, ThisPlayer.ClientId);
                                     BroadcastOutServerList();
                                 }
-                                ////if the game is already active
-                                ////added to midgame update queue and request from active player
-                                //if (gamePlayingList[gameIdToJoin])
-                                //{
-                                //    gameJoiningActiveGame[gameIdToJoin].Enqueue(clientID);
-                                //    GetGameFromPlayerTurn(gameIdToJoin);
-                                //}
-
 
                                 break;
                             case "MOVE":
@@ -390,53 +310,6 @@ namespace Game_Server
 
                                 SendServerReponse(serverResponse, Games[gameId].Players); 
                                 break;
-                            //case "MID_GAME":
-
-                            //    if (allowClientDebugPrint)
-                            //        Console.WriteLine("Client {0} Sent a Mid Game Update: {1}", clientID, userData);
-                            //    gameId = clientGameList[clientID];
-
-                            //    //send this to whomeverasked
-                            //    while (gameJoiningActiveGame[gameId].Count > 0)
-                            //    {
-                            //        SendServerReponse(userData, gameJoiningActiveGame[gameId].Dequeue());
-                            //    }
-                            //    //SendServerReponse(userData, gameClientsList[gameId], clientID);
-
-                            //    break;
-                            //case "TILE_CLICKED":
-
-                            //    if (allowClientDebugPrint)
-                            //        Console.WriteLine("Client {0} clicked a Tile: {1}", clientID, userData);
-                                
-                            //    gameId = clientGameList[clientID];
-
-                            //    SendServerReponse(userData, gameClientsList[gameId], clientID);
-
-                            //    NextTurn(gameId);
-
-                            //    break;
-                            //case "TILE_LEFTANDRIGHTCLICKED":
-
-                            //    if (allowClientDebugPrint)
-                            //        Console.WriteLine("Client {0} left and right clicked a Tile: {1}", clientID, userData);
-
-                            //    gameId = clientGameList[clientID];
-
-                            //    SendServerReponse(userData, gameClientsList[gameId], clientID);
-
-                            //    NextTurn(gameId);
-
-                            //    break;
-                            //case "TILE_RIGHTCLICKED":
-
-                            //    if (allowClientDebugPrint)
-                            //        Console.WriteLine("Client {0} right clicked a Tile: {1}", clientID, userData);
-                                
-                            //    gameId = clientGameList[clientID];
-                            //    SendServerReponse(userData, gameClientsList[gameId], clientID);
-
-                            //    break;
                             case "RESTART":
 
                                 if (allowClientDebugPrint)
@@ -449,43 +322,14 @@ namespace Game_Server
                                                                         Games[ThisPlayer.CurrentGameId].GetTurnPlayerId());
 
                                 SendServerReponse(serverResponse, Games[ThisPlayer.CurrentGameId].Players);
-                                //gameId = clientGameList[clientID];
-                                //SendServerReponse(userData, gameClientsList[gameId], clientID);
-                                //NextTurn(gameId);
 
                                 break;
-                            //case "START_GAME":
-
-                            //    if (allowClientDebugPrint)
-                            //        Console.WriteLine("Client {0} Sent a Bomb Grid and Tile Click", clientID);
-
-                            //    //send it out to each player in the game
-                            //    gameId = clientGameList[clientID];
-                            //    gamePlayingList[gameId] = true;
-                            //    SendServerReponse(userData, gameClientsList[gameId], clientID);
-
-                            //    NextTurn(gameId);
-
-                            //    break;
                             case "END_GAME":
 
                                 if (allowClientDebugPrint)
                                     Console.WriteLine("Client {0} reported Game Over", clientID);
 
                                 Games[ThisPlayer.CurrentGameId].GameState = Game.GamePhase.Finished;
-
-                                //int gameThatEnded = int.Parse(parseMsg[1]);
-                                //gamePlayingList[gameThatEnded] = false;
-                                //original ide was to destory the game
-                                //maybe keep it alive and just wait for a restart command
-                                //right now we can jsut send YOUR TURN to everyoen to unlock restarting
-
-                                //SendServerReponse("YOUR_TURN", gameClientsList[gameThatEnded]);
-
-                                //can use gameId in msg or look it up based on player id,
-                                //lets use the message value for now;
-
-                                //RemoveGameFromServerAndClients(gameThatEnded);
 
                                 break;
                             case "DROP_GAME":
@@ -496,13 +340,6 @@ namespace Game_Server
                                 RemoveClientFromGames(ThisPlayer.ClientId);
                                 ThisPlayer.DropGame();
 
-                                ////can use gameId in msg or look it up based on player id,
-                                ////lets use the message value for now;
-                                //int gameToDrop = int.Parse(parseMsg[1]); // dont use this, just drop client from all games for nwo
-                                //RemoveClientFromGames(clientID);
-
-                                //NextTurn(gameId);
-                                //BroadcastOutServerList();
                                 break;
                             case "PING":
 
@@ -516,27 +353,6 @@ namespace Game_Server
                                 {
                                     SendGameInfo(ThisPlayer.CurrentGameId, ThisPlayer.ClientId);
                                 }
-
-                                //If connected to a game send back game info 
-                                //else just update the server list
-                                //if (clientGameList.ContainsKey(clientID) &&
-                                //    gameClientsList.ContainsKey(clientGameList[clientID]))
-                                //{
-                                //    gameId = clientGameList[clientID];
-                                //    int playerTurnId = gameClientsList[gameId][gameTurnList[gameId]];
-
-                                //    string playerIdent = clientNames.ContainsKey(playerTurnId) ? clientNames[playerTurnId] : playerTurnId.ToString();
-                                //    serverResponse = string.Join(",", "GAME_INFO",
-                                //                                    gameId,
-                                //                                    gameClientsList[gameId].Count,
-                                //                                    gameClientsList[gameId][gameTurnList[gameId]],
-                                //                                    playerIdent);
-
-                                //    SendServerReponse(serverResponse, clientID);
-                                //}
-
-
-
 
                                 break;
                             default:
