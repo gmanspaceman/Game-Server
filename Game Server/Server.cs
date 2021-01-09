@@ -408,7 +408,7 @@ namespace Game_Server
             SendServerReponse(serverResponse, clientId);
         }
 
-        public void BroadcastOutServerList()
+        public void BroadcastOutServerList(int clientToExlude = -1)
         {
             string serverResponse = "GAME_LIST"; //Send to both i guess
             foreach (KeyValuePair<int, Game> game in Games)
@@ -419,7 +419,10 @@ namespace Game_Server
             //{
             //    serverResponse = string.Join(",", serverResponse, game.Key.ToString(), game.Value.Count.ToString());
             //}
-            SendServerReponse(serverResponse);
+            if (clientToExlude == -1)
+                SendServerReponse(serverResponse);
+            else
+                SendServerReponse(serverResponse, Players.Keys.ToList<int>(), clientToExlude);
         }
 
         public void RemoveClientFromServer(int clientId)
@@ -456,7 +459,7 @@ namespace Game_Server
                     }
                     else
                     {
-                        BroadcastOutServerList();
+                        BroadcastOutServerList(clientId);
                     }
                 }
             }
