@@ -50,14 +50,17 @@ namespace Game_Server
         }
         public bool DropPlayer(int playerIdWantingToDrop)
         {
-            if (Players[CurrentPlayerTurnIndex] == playerIdWantingToDrop)
+            if (Players.Contains(CurrentPlayerTurnIndex))
             {
-                CurrentPlayerTurnIndex = (CurrentPlayerTurnIndex + 1) % Players.Count;
-                //auto notify people of turn change
-                if (Players.Contains(playerIdWantingToDrop))
-                    Players.Remove(playerIdWantingToDrop); 
-                
-                return true;
+                if (Players[CurrentPlayerTurnIndex] == playerIdWantingToDrop)
+                {
+                    CurrentPlayerTurnIndex = (CurrentPlayerTurnIndex + 1) % Players.Count;
+                    //auto notify people of turn change
+                    if (Players.Contains(playerIdWantingToDrop))
+                        Players.Remove(playerIdWantingToDrop);
+
+                    return true;
+                }
             }
             if(Players.Contains(playerIdWantingToDrop))
                 Players.Remove(playerIdWantingToDrop);
