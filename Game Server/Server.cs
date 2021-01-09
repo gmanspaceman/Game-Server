@@ -634,7 +634,7 @@ namespace Game_Server
         public void RemoveClientFromServer(int clientId)
         {
             RemoveClientFromGames(clientId);
-            Players[clientId].DropGame();
+            //Players[clientId].DropGame();
             Players.Remove(clientId);
 
             //clientsList.Remove(clientId);
