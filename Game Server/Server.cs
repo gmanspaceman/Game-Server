@@ -507,10 +507,10 @@ namespace Game_Server
 
                                 SendServerReponse("PONG", ThisPlayer.ClientId);
 
-                                if (ThisPlayer.InGame)
-                                {
-                                    SendGameInfo(ThisPlayer.CurrentGameId, ThisPlayer.ClientId);
-                                }
+                                //if (ThisPlayer.InGame)
+                                //{
+                                //    SendGameInfo(ThisPlayer.CurrentGameId, ThisPlayer.ClientId);
+                                //}
 
                                 //If connected to a game send back game info 
                                 //else just update the server list
@@ -557,7 +557,7 @@ namespace Game_Server
                     //remove clienbt id from list, and any game ariftifacts
                     Console.WriteLine("");
                 }
-                Console.ReadLine();
+                //Console.ReadLine();
                 RemoveClientFromServer(clientID);
 
                 ThisPlayer.CloseConnection();
@@ -572,7 +572,7 @@ namespace Game_Server
                     Console.WriteLine("Client ID Dropped!: {0}", clientID);
                 }
                 //remove clienbt id from list
-                Console.ReadLine();
+                //Console.ReadLine();
                 RemoveClientFromServer(clientID);
             }
         }
