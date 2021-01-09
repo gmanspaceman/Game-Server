@@ -648,25 +648,30 @@ namespace Game_Server
         }
         public void RemoveClientFromGames(int clientId)
         {
-            int gameId = Players[clientId].CurrentGameId;
-            if (Games[gameId].DropPlayer(clientId))
+            if (Players[clientId].InGame)
             {
-                string serverResponse = string.Join(",", "GAME_UPDATE",
-                                                    Games[gameId].GetTurnPlayerId(),
-                                                    (int)Games[gameId].GameState);
+                int gameId = Players[clientId].CurrentGameId;
+                if (Games[gameId].DropPlayer(clientId))
+                {
+                    if (Games[gameId].Players.Count != 0)
+                    {
+                        string serverResponse = string.Join(",", "GAME_UPDATE",
+                                                        Games[gameId].GetTurnPlayerId(),
+                                                        (int)Games[gameId].GameState);
 
-                SendServerReponse(serverResponse, Games[gameId].Players);
-            }
+                        SendServerReponse(serverResponse, Games[gameId].Players);
+                    }
+                }
 
-            if (Games[gameId].Players.Count == 0)
-            {
-                RemoveGameFromServer(gameId);
+                if (Games[gameId].Players.Count == 0)
+                {
+                    RemoveGameFromServer(gameId);
+                }
+                else
+                {
+                    BroadcastOutServerList();
+                }
             }
-            else
-            {
-                BroadcastOutServerList();
-            }
-
 
             
             ////clientsList.Remove(clientId);
