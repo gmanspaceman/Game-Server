@@ -557,7 +557,7 @@ namespace Game_Server
                     //remove clienbt id from list, and any game ariftifacts
                     Console.WriteLine("");
                 }
-
+                Console.ReadLine();
                 RemoveClientFromServer(clientID);
 
                 ThisPlayer.CloseConnection();
@@ -639,35 +639,44 @@ namespace Game_Server
         }
         public void RemoveClientFromGames(int clientId)
         {
+            Console.WriteLine("here1");
             if (Players.ContainsKey(clientId))
             {
+                Console.WriteLine("here2");
                 if (Players[clientId].InGame)
                 {
                     int gameId = Players[clientId].CurrentGameId;
-
+                    Console.WriteLine("here3");
                     if (Games.ContainsKey(gameId))
                     {
+                        Console.WriteLine("here4");
                         if (Games[gameId].DropPlayer(clientId))
                         {
+                            Console.WriteLine("here5");
                             if (Games[gameId].Players.Count != 0)
                             {
+                                Console.WriteLine("here6");
                                 string serverResponse = string.Join(",", "GAME_UPDATE",
                                                                 Games[gameId].GetTurnPlayerId(),
                                                                 (int)Games[gameId].GameState);
-
+                                Console.WriteLine("here7");
                                 SendServerReponse(serverResponse, Games[gameId].Players);
                             }
                         }
                     }
-
+                    Console.WriteLine("here8");
 
                     if (Games.ContainsKey(gameId) && Games[gameId].Players.Count == 0)
                     {
+                        Console.WriteLine("here9");
                         RemoveGameFromServer(gameId);
+                        Console.WriteLine("here10");
                     }
                     else
                     {
+                        Console.WriteLine("here11");
                         BroadcastOutServerList();
+                        Console.WriteLine("here12");
                     }
                 }
             }
