@@ -151,8 +151,10 @@ namespace Game_Server
             Player ThisPlayer = new Player((TcpClient)obj, clientID);
             Players.Add(ThisPlayer.ClientId, ThisPlayer);
 
+
             try
             {
+                
                 while (!ThisPlayer.IsStale())
                 {
                     ThisPlayer.GetInputBuffer();
@@ -173,6 +175,16 @@ namespace Game_Server
 
                         switch (msgKey)
                         {
+                            case "WHOAMI":
+                                if (allowClientDebugPrint)
+                                    Console.WriteLine("Client {0} asked for their ID", clientID);
+
+                                serverResponse = string.Join(",", "HELLO",
+                                                                    ThisPlayer.ClientId); //send to player who asked
+
+                                SendServerReponse(serverResponse, ThisPlayer.ClientId);
+
+                                break;
                             case "I_AM":
                                 if (allowClientDebugPrint)
                                     Console.WriteLine("Client {0} gave their self a name", clientID);
