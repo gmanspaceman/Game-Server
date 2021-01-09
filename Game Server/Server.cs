@@ -660,7 +660,8 @@ namespace Game_Server
                         }
                     }
 
-                    if (Games[gameId].Players.Count == 0)
+
+                    if (Games.ContainsKey(gameId) && Games[gameId].Players.Count == 0)
                     {
                         RemoveGameFromServer(gameId);
                     }
