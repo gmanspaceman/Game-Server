@@ -13,24 +13,28 @@ namespace Game_Server
     public class Server
     {
         TcpListener server = null;
-        public static Dictionary<int, NetworkStream> clientsList = new Dictionary<int, NetworkStream>();
-        public static Dictionary<int, string> clientNames = new Dictionary<int, string>();
-        public static Dictionary<int, bool> clientIsWebsock = new Dictionary<int, bool>();
-        public static Dictionary<int, int> clientGameList = new Dictionary<int, int>(); 
-        public static Dictionary<int, List<int>> gameClientsList = new Dictionary<int, List<int>>();
-        public static Dictionary<int, int> gameTurnList = new Dictionary<int, int>();
-        public static Dictionary<int, bool> gamePlayingList = new Dictionary<int, bool>();
+        //public static Dictionary<int, NetworkStream> clientsList = new Dictionary<int, NetworkStream>();
 
-        public static Dictionary<int, Queue<int>> gameJoiningActiveGame = new Dictionary<int, Queue<int>>();
+        //public static Dictionary<int, string> clientNames = new Dictionary<int, string>();
+        //public static Dictionary<int, bool> clientIsWebsock = new Dictionary<int, bool>();
+        //public static Dictionary<int, int> clientGameList = new Dictionary<int, int>();
+        //public static Dictionary<int, List<string>> clientCommandHistory = new Dictionary<int, List<string>>();
 
-        public static Dictionary<int, List<string>> clientCommandHistory = new Dictionary<int, List<string>>();
+        //public static Dictionary<int, List<int>> gameClientsList = new Dictionary<int, List<int>>();
+        //public static Dictionary<int, int> gameTurnList = new Dictionary<int, int>();
+        //public static Dictionary<int, bool> gamePlayingList = new Dictionary<int, bool>();
+
+        //public static Dictionary<int, Queue<int>> gameJoiningActiveGame = new Dictionary<int, Queue<int>>();
+
+        public static Dictionary<int, Player> Players = new Dictionary<int, Player>();
+        public static Dictionary<int, Game> Games = new Dictionary<int, Game>();
+
 
         public const int maxConnections = 10; //randomly picked
         public const int maxGames = 10; //randomly picked
 
         public const string eom = "<EOM>";
 
-        bool isWebSocket = false;
         bool allowClientDebugPrint = false;
 
         public Server(string ip, int port)
@@ -61,44 +65,44 @@ namespace Game_Server
         }
         public void PrintUserHistory()
         {
-            foreach(KeyValuePair<int, List<string>> k in clientCommandHistory)
+            foreach (KeyValuePair<int, Player> k in Players)
             {
                 Console.WriteLine("----Client Id: {0} History----", k.Key);
-                foreach (string s in k.Value)
+                foreach (string cmd in k.Value.SentHistory)
                 {
-                    Console.WriteLine(s);
+                    Console.WriteLine(cmd);
                 }
                 Console.WriteLine("---------------------------");
             }
+
+            //foreach(KeyValuePair<int, List<string>> k in clientCommandHistory)
+            //{
+            //    Console.WriteLine("----Client Id: {0} History----", k.Key);
+            //    foreach (string s in k.Value)
+            //    {
+            //        Console.WriteLine(s);
+            //    }
+            //    Console.WriteLine("---------------------------");
+            //}
         }
         public void PrintServerState()
         {
             Console.WriteLine("");
             Console.WriteLine("==============SERVER STATE===============");
             Console.WriteLine("-----------CONNECTED CLIENTS-------------");
-            foreach (int clientId in clientsList.Keys)
+            foreach (int clientId in Players.Keys)
                 Console.WriteLine("Client {0} is connected", clientId);
             Console.WriteLine("--------------ACTIVE GAMES---------------");
-            foreach (KeyValuePair<int, List<int>> k in gameClientsList)
+            foreach (KeyValuePair<int, Game> k in Games)
             {
-                Console.WriteLine("Game {0} has these clients: {1}. It's {2} turn. Playing is {3}",
+                Console.WriteLine("Game {0} has these clients: {1}. It's {2} turn. GameState is {3}",
                                     k.Key,
-                                    string.Join(",", k.Value),
-                                    gameTurnList[k.Key],
-                                    gamePlayingList[k.Key]);
+                                    string.Join(",", k.Value.Players),
+                                    k.Value.GetTurnPlayerId(),
+                                    Enum.GetName(typeof(Game.GamePhase), k.Value.GameState));
             }
             Console.WriteLine("============END SERVER STATE=============");
             Console.WriteLine("");
-
-        }
-        public void ListConnectedUsers()
-        {
-            Console.Write("Connected Clients: ");
-            foreach (KeyValuePair<int, NetworkStream> k in clientsList)
-            {
-                Console.Write(k.Key.ToString() + ", ");
-            }
-            Console.Write("\n");
 
         }
         public void StartListener()
@@ -120,187 +124,42 @@ namespace Game_Server
                 server.Stop();
             }
         }
+
         public void HandleDeivce(Object obj)
         {
-            TcpClient client = (TcpClient)obj;
-            NetworkStream stream = client.GetStream();
             int clientID = 0;
 
-            //See if we have reached out max number of connecitons
-            //If so just close it
-            //Right now this does not inform what, probably should add that
-            // TODO: inform user connection refused too many connections
-            // future work would i guess spin up another vm or server?
-            bool rejectConnection = (clientsList.Count >= maxConnections);
-            if (rejectConnection)
+            if (Players.Count >= maxConnections)
             {
+                TcpClient client = (TcpClient)obj;
                 client.GetStream().Close();
                 client.Close();
                 return;
             }
-
-            //Add the new connection to the static dict;
-            //Find an open connection number to assign this person
-            for (int ii = 0; ii < maxConnections; ii++)
+            else
             {
-                if (!clientsList.ContainsKey(ii))
+                for (int newClientId = 0; newClientId < maxConnections; newClientId++)
                 {
-                    clientsList.Add(ii, stream);
-                    clientCommandHistory.Add(ii, new List<string>());
-                    clientIsWebsock.Add(ii, false);
-                    clientID = ii;
-                    break;
+                    if (!Players.ContainsKey(newClientId))
+                    {
+                        clientID = newClientId;
+                        break;
+                    }
                 }
             }
-            ListConnectedUsers();
 
-            Byte[] buffer = new Byte[4 * 1024];
-            int inputBuffer;
-            string userData = string.Empty;
-            string carryData = string.Empty;
+            Player ThisPlayer = new Player((TcpClient)obj, clientID);
+            Players.Add(ThisPlayer.ClientId, ThisPlayer);
 
-            isWebSocket = false;
             try
             {
-                Stopwatch lastComm = new Stopwatch();
-                lastComm.Start();
-
-                //new user, request basic information
-
-
-                while (lastComm.ElapsedMilliseconds < 10000)
+                while (!ThisPlayer.IsStale())
                 {
-                    if (!stream.DataAvailable)
+                    ThisPlayer.GetInputBuffer();
+
+                    while (ThisPlayer.RecvQueue.Count != 0)
                     {
-                        Thread.Sleep(125); //slowdown thread
-                        //SendServerReponse("HEEY", clientID);
-                        continue;
-                    }
-                    lastComm.Restart();
-
-
-                    #region Carry Data
-                    //will need to just dump carry data if its getting to obigt
-                    //this implies more message traffice than the loop can keep up with
-                    //should only happen in a debug enviorment
-                    userData = carryData;
-                    carryData = string.Empty;
-
-                    inputBuffer = stream.Read(buffer, 0, buffer.Length);
-                    string data = Encoding.UTF8.GetString(buffer, 0, inputBuffer);
-                    
-                    //This mis the newebsocket connection
-                    if (new Regex("^GET[^_]").IsMatch(data))
-                    {
-                        if (allowClientDebugPrint)
-                        {
-                            Console.WriteLine(data);
-                        }
-                        
-                        Byte [] rsp = ServerWebSock.ReplyToGETHandshake(data);
-                        stream.Write(rsp, 0, rsp.Length);
-
-                        if (allowClientDebugPrint)
-                        {
-                            Console.WriteLine("Resonding with:");
-                            Console.WriteLine(Encoding.UTF8.GetString(rsp));
-                        }
-
-                        isWebSocket = true;
-                        clientIsWebsock[clientID] = true;
-                        continue;
-                    }
-
-                    if(isWebSocket)
-                    {
-                        if ((buffer[0] & (byte)ServerWebSock.Opcode.CloseConnection) == (byte)ServerWebSock.Opcode.CloseConnection)
-                        {
-                            // Close connection request.
-                            if (allowClientDebugPrint)
-                            {
-                                Console.WriteLine("Client disconnected.");
-                            }
-                            //fornow gonna let timeout code kick
-                            //clientSocket.Close();
-                            break;
-                        }
-                        else
-                        {
-                            //Console.WriteLine("Pre");
-                            Byte[] receivedPayload = ServerWebSock.ParsePayloadFromFrame(buffer);
-                            data = Encoding.UTF8.GetString(receivedPayload);
-                            //Console.WriteLine("Post");
-                            if (allowClientDebugPrint)
-                            {
-                                Console.WriteLine($"Websocket Client: {data}");
-                            }
-
-                            //string response = $"ECHO: {data}";
-                            //Byte[] dataToSend = ServerWebSock.CreateFrameFromString(response);
-
-                            //Console.WriteLine($"Server: {response}");
-
-                            ////clientSocket.Send(dataToSend);
-                            //stream.Write(dataToSend, 0, dataToSend.Length);
-                            //continue;
-                        }
-                    }
-
-
-                    userData += data;
-
-                    Queue<string> validMessages = new Queue<string>();
-                    bool debugMsgQueueingAndCarry = false;
-                    if (userData.Contains(eom)) //Find the <EOM> tag
-                    {
-                        //lets find a way to store all full messages right now
-                        //just carry over partial message
-
-                        string[] splitInput = userData.Split(new string[] { eom }, StringSplitOptions.RemoveEmptyEntries);
-
-                        if (userData.EndsWith(eom))
-                        {
-                            //all messages are full
-                            foreach (string msg in splitInput)
-                            {
-                                validMessages.Enqueue(msg.Replace(eom, ""));
-                                if (debugMsgQueueingAndCarry)
-                                    if (allowClientDebugPrint)
-                                        Console.WriteLine("FullMsgQueued: " + msg);
-                            }
-                        }
-                        else
-                        {
-                            //last message in is partial
-                            for (int ii = 0; ii < splitInput.Length - 1; ii++)
-                            {
-                                validMessages.Enqueue(splitInput[ii].Replace(eom, ""));
-                                if (debugMsgQueueingAndCarry)
-                                    if (allowClientDebugPrint)
-                                        Console.WriteLine("FullMsgQueued: " + splitInput[ii]);
-                            }
-                            carryData = splitInput[splitInput.Length - 1];
-                            if (debugMsgQueueingAndCarry)
-                                if (allowClientDebugPrint)
-                                    Console.WriteLine("CarryData: " + carryData);
-                        }
-                    }
-                    else //patial packet keep the string and append the next read
-                    {
-                        carryData = userData;
-
-                        if (carryData != string.Empty)
-                            if (debugMsgQueueingAndCarry)
-                                if (allowClientDebugPrint)
-                                    Console.WriteLine("carryData: " + carryData);
-
-                        continue;
-                    }
-                    #endregion
-
-                    while (validMessages.Count != 0)
-                    {
-                        userData = validMessages.Dequeue();
+                        string userData = ThisPlayer.RecvQueue.Dequeue();
 
                         if (allowClientDebugPrint)
                         {
@@ -312,82 +171,95 @@ namespace Game_Server
                         string msgKey = parseMsg[0];
                         int gameId = -1;
 
-                        if (msgKey != "PING")
-                        {
-                            if (clientCommandHistory[clientID].Count >= 5)
-                                clientCommandHistory[clientID].RemoveAt(0);
-                            clientCommandHistory[clientID].Add(userData);
-                        }
-
                         switch (msgKey)
                         {
                             case "I_AM":
-
                                 if (allowClientDebugPrint)
                                     Console.WriteLine("Client {0} gave their self a name", clientID);
 
-                                if (clientNames.ContainsKey(clientID))
-                                    clientNames[clientID] = parseMsg[1];
-                                else
-                                    clientNames.Add(clientID, parseMsg[1]);
-
-                                //SendServerReponse(serverResponse, clientID);
-                                //send updated name list to everyone
-                                //send updates lists with names maybe
+                                ThisPlayer.SetClientName(parseMsg[1]);
 
                                 break;
                             case "MAKE_GAME":
                                 if (allowClientDebugPrint)
                                     Console.WriteLine("Client {0} wants to start a Game", clientID);
-
+                                
                                 for (int newGameId = 0; newGameId < maxGames; newGameId++)
                                 {
-                                    if (!gameClientsList.ContainsKey(newGameId))
+                                    if(!Games.ContainsKey(newGameId))
                                     {
-                                        gameClientsList.Add(newGameId, new List<int>());
-                                        gamePlayingList.Add(newGameId, false);
-                                        gameJoiningActiveGame.Add(newGameId, new Queue<int>());
+                                        Game newGame = new Game(gameId);
+                                        Games.Add(newGame.GameId, newGame);
 
-                                        gameClientsList[newGameId].Add(clientID);
-                                        if (!clientGameList.ContainsKey(clientID))
-                                        {
-                                            clientGameList.Add(clientID, newGameId);
-                                        }
-                                        else
-                                        {
-                                            clientGameList[clientID] = newGameId;
-                                        }
+                                        Games[newGame.GameId].AddPlayer(ThisPlayer.ClientId);
+                                        ThisPlayer.JoinGame(newGame.GameId);
 
-                                        if (gameTurnList.ContainsKey(newGameId))
-                                            gameTurnList.Remove(newGameId);
-                                        gameTurnList[newGameId] = 0; //its players 0s turn
 
-                                        break;
+                                        serverResponse = string.Join(",", "JOINED_GAME",
+                                                                            newGame.GameId,
+                                                                            (int)newGame.GameState); //send to player who asked
+                                        
+                                        SendServerReponse(serverResponse, ThisPlayer.ClientId);
+                                        BroadcastOutServerList();
+
                                     }
                                 }
+
+
+                                //for (int newGameId = 0; newGameId < maxGames; newGameId++)
+                                //{
+                                //    if (!gameClientsList.ContainsKey(newGameId))
+                                //    {
+                                //        gameClientsList.Add(newGameId, new List<int>());
+                                //        gamePlayingList.Add(newGameId, false);
+                                //        gameJoiningActiveGame.Add(newGameId, new Queue<int>());
+
+                                //        gameClientsList[newGameId].Add(clientID);
+                                //        if (!clientGameList.ContainsKey(clientID))
+                                //        {
+                                //            clientGameList.Add(clientID, newGameId);
+                                //        }
+                                //        else
+                                //        {
+                                //            clientGameList[clientID] = newGameId;
+                                //        }
+
+                                //        if (gameTurnList.ContainsKey(newGameId))
+                                //            gameTurnList.Remove(newGameId);
+                                //        gameTurnList[newGameId] = 0; //its players 0s turn
+
+                                //        break;
+                                //    }
+                                //}
+
                                 //find lowest availble gameIDnot used
                                 //add it to the dict
                                 //add this client to player list
 
                                 //serverResponse = "MADE_GAME," + clientGameList[clientID]; //send to player who asked
-                                serverResponse = string.Join(",", "JOINED_GAME", clientGameList[clientID], clientID); //send to player who asked
+                                //serverResponse = string.Join(",", "JOINED_GAME", clientGameList[clientID], clientID); //send to player who asked
 
-                                SendServerReponse(serverResponse, clientID);
-                                BroadcastOutServerList();
+                                //SendServerReponse(serverResponse, clientID);
+                                //BroadcastOutServerList();
                                 break;
                             case "GET_GAMES":
 
                                 if (allowClientDebugPrint)
                                     Console.WriteLine("Client {0} wants a List of the Games", clientID);
 
-                                serverResponse = "GAME_LIST"; //Send to both i guess
-
-                                foreach (KeyValuePair<int, List<int>> game in gameClientsList)
+                                foreach (KeyValuePair<int, Game> game in Games)
                                 {
-                                    serverResponse = string.Join(",", serverResponse, game.Key.ToString(), game.Value.Count.ToString());
+                                    serverResponse = string.Join(",", "GAME_LIST", 
+                                                                        game.Key.ToString(), 
+                                                                        game.Value.Players.Count());
                                 }
 
-                                SendServerReponse(serverResponse, clientID);
+                                SendServerReponse(serverResponse, ThisPlayer.ClientId);
+
+                                //foreach (KeyValuePair<int, List<int>> game in gameClientsList)
+                                //{
+                                //    serverResponse = string.Join(",", serverResponse, game.Key.ToString(), game.Value.Count.ToString());
+                                //}
 
                                 break;
                             case "GAME_INFO":
@@ -395,22 +267,27 @@ namespace Game_Server
                                 if (allowClientDebugPrint)
                                     Console.WriteLine("Client {0} wants Info on their game", clientID);
 
-                                if (clientGameList.ContainsKey(clientID) &&
-                                    gameClientsList.ContainsKey(clientGameList[clientID]))
+                                if (ThisPlayer.InGame)
                                 {
-                                    gameId = clientGameList[clientID];
-
-                                    int playerTurnId = gameClientsList[gameId][gameTurnList[gameId]];
-                                    
-                                    string playerIdent = clientNames.ContainsKey(playerTurnId) ? clientNames[playerTurnId] : playerTurnId.ToString();
-                                    serverResponse = string.Join(",", "GAME_INFO",
-                                                                    gameId,
-                                                                    gameClientsList[gameId].Count,
-                                                                    gameClientsList[gameId][gameTurnList[gameId]],
-                                                                    playerIdent);
-
-                                    SendServerReponse(serverResponse, clientID);
+                                    SendGameInfo(ThisPlayer.CurrentGameId, ThisPlayer.ClientId);
                                 }
+
+                                //if (clientGameList.ContainsKey(clientID) &&
+                                //    gameClientsList.ContainsKey(clientGameList[clientID]))
+                                //{
+                                //    gameId = clientGameList[clientID];
+
+                                //    int playerTurnId = gameClientsList[gameId][gameTurnList[gameId]];
+
+                                //    string playerIdent = clientNames.ContainsKey(playerTurnId) ? clientNames[playerTurnId] : playerTurnId.ToString();
+                                //    serverResponse = string.Join(",", "GAME_INFO",
+                                //                                    gameId,
+                                //                                    gameClientsList[gameId].Count,
+                                //                                    gameClientsList[gameId][gameTurnList[gameId]],
+                                //                                    playerIdent);
+
+                                //    SendServerReponse(serverResponse, clientID);
+                                //}
 
                                 break;
                             case "JOIN_GAME":
@@ -420,113 +297,171 @@ namespace Game_Server
 
                                 int gameIdToJoin = int.Parse(parseMsg[1]);
 
-                                if (!gameClientsList[gameIdToJoin].Contains(clientID))
-                                    gameClientsList[gameIdToJoin].Add(clientID);
-
-                                if (!clientGameList.ContainsKey(clientID))
+                                //If player in a curernt game drop that game
+                                if(ThisPlayer.InGame)
                                 {
-                                    clientGameList.Add(clientID, gameIdToJoin);
+                                    Games[ThisPlayer.CurrentGameId].DropPlayer(ThisPlayer.ClientId);
+                                    ThisPlayer.DropGame();
                                 }
-                                else
+                                ThisPlayer.JoinGame(gameIdToJoin);
+                                Games[gameIdToJoin].AddPlayer(ThisPlayer.ClientId);
+
+                                //if (!gameClientsList[gameIdToJoin].Contains(clientID))
+                                //    gameClientsList[gameIdToJoin].Add(clientID);
+
+                                //if (!clientGameList.ContainsKey(clientID))
+                                //{
+                                //    clientGameList.Add(clientID, gameIdToJoin);
+                                //}
+                                //else
+                                //{
+                                //    clientGameList[clientID] = gameIdToJoin;
+                                //}
+
+                                if (Games[gameIdToJoin].GameState == Game.GamePhase.PreGame)
                                 {
-                                    clientGameList[clientID] = gameIdToJoin;
+
+                                    serverResponse = string.Join(",", "JOINED_GAME",
+                                                                        (int)Games[gameIdToJoin].GameState,
+                                                                        Games[gameId].GetTurnPlayerId(),
+                                                                        gameIdToJoin);
                                 }
-                                serverResponse = string.Join(",", "JOINED_GAME", clientGameList[clientID], clientID); //send to player who asked
-
-                                SendServerReponse(serverResponse, clientID);
-
-
-                                //if the game is already active
-                                //added to midgame update queue and request from active player
-                                if (gamePlayingList[gameIdToJoin])
+                                else if (Games[gameIdToJoin].GameState == Game.GamePhase.Playing)
                                 {
-                                    gameJoiningActiveGame[gameIdToJoin].Enqueue(clientID);
-                                    GetGameFromPlayerTurn(gameIdToJoin);
+                                    serverResponse = string.Join(",", "JOINED_GAME",
+                                                                        (int)Games[gameIdToJoin].GameState,
+                                                                        Games[gameId].GetTurnPlayerId(),
+                                                                        gameIdToJoin,
+                                                                        Games[gameIdToJoin].CurrentGameState);
                                 }
-
+                                else if (Games[gameIdToJoin].GameState == Game.GamePhase.Finished) //dont know what i want to do here
+                                {
+                                    serverResponse = string.Join(",", "JOINED_GAME",
+                                                                        (int)Games[gameIdToJoin].GameState,
+                                                                        Games[gameId].GetTurnPlayerId(),
+                                                                        gameIdToJoin);
+                                }
+                                SendServerReponse(serverResponse, ThisPlayer.ClientId);
                                 BroadcastOutServerList();
-                                break;
-                            case "MID_GAME":
 
-                                if (allowClientDebugPrint)
-                                    Console.WriteLine("Client {0} Sent a Mid Game Update: {1}", clientID, userData);
-                                gameId = clientGameList[clientID];
+                                ////if the game is already active
+                                ////added to midgame update queue and request from active player
+                                //if (gamePlayingList[gameIdToJoin])
+                                //{
+                                //    gameJoiningActiveGame[gameIdToJoin].Enqueue(clientID);
+                                //    GetGameFromPlayerTurn(gameIdToJoin);
+                                //}
 
-                                //send this to whomeverasked
-                                while (gameJoiningActiveGame[gameId].Count > 0)
-                                {
-                                    SendServerReponse(userData, gameJoiningActiveGame[gameId].Dequeue());
-                                }
-                                //SendServerReponse(userData, gameClientsList[gameId], clientID);
-
-                                break;
-                            case "TILE_CLICKED":
-
-                                if (allowClientDebugPrint)
-                                    Console.WriteLine("Client {0} clicked a Tile: {1}", clientID, userData);
                                 
-                                gameId = clientGameList[clientID];
-
-                                SendServerReponse(userData, gameClientsList[gameId], clientID);
-
-                                NextTurn(gameId);
-
                                 break;
-                            case "TILE_LEFTANDRIGHTCLICKED":
-
+                            case "MOVE":
                                 if (allowClientDebugPrint)
-                                    Console.WriteLine("Client {0} left and right clicked a Tile: {1}", clientID, userData);
+                                    Console.WriteLine("Client {0} made a move: ", clientID);
 
-                                gameId = clientGameList[clientID];
+                                gameId = ThisPlayer.CurrentGameId;
 
-                                SendServerReponse(userData, gameClientsList[gameId], clientID);
+                                string gameUpdate = String.Join("",parseMsg.Skip(1));
+                                Games[gameId].CurrentGameState = gameUpdate;
+                                Games[gameId].NextTurn();
 
-                                NextTurn(gameId);
+                                //sendupdate to everyone
+                                serverResponse = string.Join(",", "GAME_UPDATE",
+                                                                        Games[gameId].GetTurnPlayerId(),
+                                                                        Games[gameId].CurrentGameState);
 
+                                SendServerReponse(serverResponse, Games[gameId].Players); 
                                 break;
-                            case "TILE_RIGHTCLICKED":
+                            //case "MID_GAME":
 
-                                if (allowClientDebugPrint)
-                                    Console.WriteLine("Client {0} right clicked a Tile: {1}", clientID, userData);
+                            //    if (allowClientDebugPrint)
+                            //        Console.WriteLine("Client {0} Sent a Mid Game Update: {1}", clientID, userData);
+                            //    gameId = clientGameList[clientID];
+
+                            //    //send this to whomeverasked
+                            //    while (gameJoiningActiveGame[gameId].Count > 0)
+                            //    {
+                            //        SendServerReponse(userData, gameJoiningActiveGame[gameId].Dequeue());
+                            //    }
+                            //    //SendServerReponse(userData, gameClientsList[gameId], clientID);
+
+                            //    break;
+                            //case "TILE_CLICKED":
+
+                            //    if (allowClientDebugPrint)
+                            //        Console.WriteLine("Client {0} clicked a Tile: {1}", clientID, userData);
                                 
-                                gameId = clientGameList[clientID];
-                                SendServerReponse(userData, gameClientsList[gameId], clientID);
+                            //    gameId = clientGameList[clientID];
 
-                                break;
+                            //    SendServerReponse(userData, gameClientsList[gameId], clientID);
+
+                            //    NextTurn(gameId);
+
+                            //    break;
+                            //case "TILE_LEFTANDRIGHTCLICKED":
+
+                            //    if (allowClientDebugPrint)
+                            //        Console.WriteLine("Client {0} left and right clicked a Tile: {1}", clientID, userData);
+
+                            //    gameId = clientGameList[clientID];
+
+                            //    SendServerReponse(userData, gameClientsList[gameId], clientID);
+
+                            //    NextTurn(gameId);
+
+                            //    break;
+                            //case "TILE_RIGHTCLICKED":
+
+                            //    if (allowClientDebugPrint)
+                            //        Console.WriteLine("Client {0} right clicked a Tile: {1}", clientID, userData);
+                                
+                            //    gameId = clientGameList[clientID];
+                            //    SendServerReponse(userData, gameClientsList[gameId], clientID);
+
+                            //    break;
                             case "RESTART":
 
                                 if (allowClientDebugPrint)
                                     Console.WriteLine("Client {0} wanted to play again: {1}", clientID, userData);
-                                
-                                gameId = clientGameList[clientID];
-                                SendServerReponse(userData, gameClientsList[gameId], clientID);
-                                NextTurn(gameId);
-                                break;
-                            case "START_GAME":
 
-                                if (allowClientDebugPrint)
-                                    Console.WriteLine("Client {0} Sent a Bomb Grid and Tile Click", clientID);
+                                Games[ThisPlayer.CurrentGameId].GameState = Game.GamePhase.PreGame;
 
-                                //send it out to each player in the game
-                                gameId = clientGameList[clientID];
-                                gamePlayingList[gameId] = true;
-                                SendServerReponse(userData, gameClientsList[gameId], clientID);
+                                serverResponse = string.Join(",", "RESTART",
+                                                                        ThisPlayer.CurrentGameId, 
+                                                                        Games[ThisPlayer.CurrentGameId].GetTurnPlayerId());
 
-                                NextTurn(gameId);
+                                SendServerReponse(serverResponse, Games[ThisPlayer.CurrentGameId].Players);
+                                //gameId = clientGameList[clientID];
+                                //SendServerReponse(userData, gameClientsList[gameId], clientID);
+                                //NextTurn(gameId);
 
                                 break;
+                            //case "START_GAME":
+
+                            //    if (allowClientDebugPrint)
+                            //        Console.WriteLine("Client {0} Sent a Bomb Grid and Tile Click", clientID);
+
+                            //    //send it out to each player in the game
+                            //    gameId = clientGameList[clientID];
+                            //    gamePlayingList[gameId] = true;
+                            //    SendServerReponse(userData, gameClientsList[gameId], clientID);
+
+                            //    NextTurn(gameId);
+
+                            //    break;
                             case "END_GAME":
 
                                 if (allowClientDebugPrint)
                                     Console.WriteLine("Client {0} reported Game Over", clientID);
-                                
-                                int gameThatEnded = int.Parse(parseMsg[1]);
-                                gamePlayingList[gameThatEnded] = false;
+
+                                Games[ThisPlayer.CurrentGameId].GameState = Game.GamePhase.Finished;
+
+                                //int gameThatEnded = int.Parse(parseMsg[1]);
+                                //gamePlayingList[gameThatEnded] = false;
                                 //original ide was to destory the game
                                 //maybe keep it alive and just wait for a restart command
                                 //right now we can jsut send YOUR TURN to everyoen to unlock restarting
 
-                                SendServerReponse("YOUR_TURN", gameClientsList[gameThatEnded]);
+                                //SendServerReponse("YOUR_TURN", gameClientsList[gameThatEnded]);
 
                                 //can use gameId in msg or look it up based on player id,
                                 //lets use the message value for now;
@@ -538,13 +473,26 @@ namespace Game_Server
 
                                 if (allowClientDebugPrint) 
                                     Console.WriteLine("Client {0} dropped their game", clientID);
-                                
-                                //can use gameId in msg or look it up based on player id,
-                                //lets use the message value for now;
-                                int gameToDrop = int.Parse(parseMsg[1]); // dont use this, just drop client from all games for nwo
-                                RemoveClientFromGames(clientID);
 
-                                NextTurn(gameId);
+                               if(Games[ThisPlayer.CurrentGameId].DropPlayer(ThisPlayer.ClientId))
+                                {
+                                    serverResponse = string.Join(",", "GAME_UPDATE",
+                                                                        Games[gameId].GetTurnPlayerId(),
+                                                                        (int)Games[gameId].GameState);
+
+                                    SendServerReponse(serverResponse, Games[gameId].Players);
+                                }
+                                ThisPlayer.DropGame();
+
+                                
+                                
+
+                                ////can use gameId in msg or look it up based on player id,
+                                ////lets use the message value for now;
+                                //int gameToDrop = int.Parse(parseMsg[1]); // dont use this, just drop client from all games for nwo
+                                //RemoveClientFromGames(clientID);
+
+                                //NextTurn(gameId);
                                 BroadcastOutServerList();
                                 break;
                             case "PING":
@@ -553,27 +501,33 @@ namespace Game_Server
                                 if (allowClientDebugPrint)
                                     Console.WriteLine("Client {0} Pinged", clientID);
 
-                                SendServerReponse("PONG", clientID);
-                                //If connected to a game send back game info 
-                                //else just update the server list
-                                if (clientGameList.ContainsKey(clientID) &&
-                                    gameClientsList.ContainsKey(clientGameList[clientID]))
-                                {
-                                    gameId = clientGameList[clientID];
-                                    int playerTurnId = gameClientsList[gameId][gameTurnList[gameId]];
-                                    
-                                    string playerIdent = clientNames.ContainsKey(playerTurnId) ? clientNames[playerTurnId] : playerTurnId.ToString();
-                                    serverResponse = string.Join(",", "GAME_INFO",
-                                                                    gameId,
-                                                                    gameClientsList[gameId].Count,
-                                                                    gameClientsList[gameId][gameTurnList[gameId]],
-                                                                    playerIdent);
+                                SendServerReponse("PONG", ThisPlayer.ClientId);
 
-                                    SendServerReponse(serverResponse, clientID);
+                                if (ThisPlayer.InGame)
+                                {
+                                    SendGameInfo(ThisPlayer.CurrentGameId, ThisPlayer.ClientId);
                                 }
 
+                                //If connected to a game send back game info 
+                                //else just update the server list
+                                //if (clientGameList.ContainsKey(clientID) &&
+                                //    gameClientsList.ContainsKey(clientGameList[clientID]))
+                                //{
+                                //    gameId = clientGameList[clientID];
+                                //    int playerTurnId = gameClientsList[gameId][gameTurnList[gameId]];
 
-                                
+                                //    string playerIdent = clientNames.ContainsKey(playerTurnId) ? clientNames[playerTurnId] : playerTurnId.ToString();
+                                //    serverResponse = string.Join(",", "GAME_INFO",
+                                //                                    gameId,
+                                //                                    gameClientsList[gameId].Count,
+                                //                                    gameClientsList[gameId][gameTurnList[gameId]],
+                                //                                    playerIdent);
+
+                                //    SendServerReponse(serverResponse, clientID);
+                                //}
+
+
+
 
                                 break;
                             default:
@@ -602,8 +556,9 @@ namespace Game_Server
 
                 RemoveClientFromServer(clientID);
 
-                client.GetStream().Close();
-                client.Close();
+                ThisPlayer.CloseConnection();
+                //client.GetStream().Close();
+                //client.Close();
             }
             catch (Exception e)
             {
@@ -615,92 +570,142 @@ namespace Game_Server
                 //remove clienbt id from list
                 RemoveClientFromServer(clientID);
             }
-            ListConnectedUsers();
         }
+        public void SendGameInfo(int gameId, int clientId)
+        {
+            string serverResponse = string.Join(",", "GAME_INFO",
+                                    Games[gameId].GameId,
+                                    Games[gameId].Players.Count,
+                                    Players[Games[gameId].Players[Games[gameId].CurrentPlayerTurnIndex]].ClientId,
+                                    Players[Games[gameId].Players[Games[gameId].CurrentPlayerTurnIndex]].GetClientName());
+
+            SendServerReponse(serverResponse, clientId);
+        }
+
         public void BroadcastOutServerList()
         {
             string serverResponse = "GAME_LIST"; //Send to both i guess
-            foreach (KeyValuePair<int, List<int>> game in gameClientsList)
+            foreach (KeyValuePair<int, Game> game in Games)
             {
-                serverResponse = string.Join(",", serverResponse, game.Key.ToString(), game.Value.Count.ToString());
+                serverResponse = string.Join(",", serverResponse, game.Key.ToString(), game.Value.Players.Count.ToString());
             }
+            //foreach (KeyValuePair<int, List<int>> game in gameClientsList)
+            //{
+            //    serverResponse = string.Join(",", serverResponse, game.Key.ToString(), game.Value.Count.ToString());
+            //}
             SendServerReponse(serverResponse);
         }
 
-        public void NextTurn(int gameId)
-        {
-            if (gameClientsList.ContainsKey(gameId))
-            {
-                gameTurnList[gameId] = (gameTurnList[gameId] + 1) % gameClientsList[gameId].Count; //icnrement whos turn it is
+        //public void NextTurn(int gameId)
+        //{
+        //    if (gameClientsList.ContainsKey(gameId))
+        //    {
+        //        gameTurnList[gameId] = (gameTurnList[gameId] + 1) % gameClientsList[gameId].Count; //icnrement whos turn it is
 
-                //okay we will inform the next player
-                int playerNumber = gameTurnList[gameId];
-                int matchingClientid = gameClientsList[gameId][playerNumber];
+        //        //okay we will inform the next player
+        //        int playerNumber = gameTurnList[gameId];
+        //        int matchingClientid = gameClientsList[gameId][playerNumber];
 
-                //Thread.Sleep(125);
-                SendServerReponse("YOUR_TURN", matchingClientid);
+        //        //Thread.Sleep(125);
+        //        SendServerReponse("YOUR_TURN", matchingClientid);
                 
-                if (allowClientDebugPrint)
-                    Console.WriteLine("Sent YOUR_TURN to {0}", matchingClientid);
-            }
-        }
+        //        if (allowClientDebugPrint)
+        //            Console.WriteLine("Sent YOUR_TURN to {0}", matchingClientid);
+        //    }
+        //}
 
-        public void GetGameFromPlayerTurn(int gameId)
-        {
-            SendServerReponse("GET_MIDGAME", gameClientsList[gameId][gameTurnList[gameId]]);
-        }
+        //public void GetGameFromPlayerTurn(int gameId)
+        //{
+        //    SendServerReponse("GET_MIDGAME", gameClientsList[gameId][gameTurnList[gameId]]);
+        //}
         public void RemoveClientFromServer(int clientId)
         {
-            clientsList.Remove(clientId);
-            clientCommandHistory.Remove(clientId);
-            clientIsWebsock.Remove(clientId);
-            if (clientNames.ContainsKey(clientId))
-                clientNames.Remove(clientId);
-
             RemoveClientFromGames(clientId);
+            Players[clientId].DropGame();
+            Players.Remove(clientId);
+
+            //clientsList.Remove(clientId);
+            //clientCommandHistory.Remove(clientId);
+            //clientIsWebsock.Remove(clientId);
+            //if (clientNames.ContainsKey(clientId))
+            //    clientNames.Remove(clientId);
+
+            //RemoveClientFromGames(clientId);
         }
         public void RemoveClientFromGames(int clientId)
         {
-            //clientsList.Remove(clientId);
-            //better if go through those games and remove client and then remove game
-            //todo for later i guess
-            if (clientGameList.ContainsKey(clientId))
+            int gameId = Players[clientId].CurrentGameId;
+            if (Games[gameId].DropPlayer(clientId))
             {
-                int gameId = clientGameList[clientId];
+                string serverResponse = string.Join(",", "GAME_UPDATE",
+                                                    Games[gameId].GetTurnPlayerId(),
+                                                    (int)Games[gameId].GameState);
 
-                if (gameClientsList.ContainsKey(gameId))        //has to contain it 
-                    gameClientsList[gameId].Remove(clientId);
-
-                clientGameList.Remove(clientId);
-
-                if (gameClientsList[gameId].Count == 0)     //if no one left in the game destroy it
-                {
-                    RemoveGameFromServerAndClients(gameId);
-                    //this broadcasts its own
-                }
-                else
-                {
-                    NextTurn(gameId);
-                    BroadcastOutServerList();
-                }
+                SendServerReponse(serverResponse, Games[gameId].Players);
             }
-        }
-        public void RemoveGameFromServerAndClients(int gameId)
-        {
-            if (gameClientsList.ContainsKey(gameId))
+
+            if (Games[gameId].Players.Count == 0)
             {
-                gameClientsList.Remove(gameId);
-                gameTurnList.Remove(gameId);
-                gamePlayingList.Remove(gameId);
-                gameJoiningActiveGame.Remove(gameId);
-                
-                foreach (int client in gameClientsList[gameId])
+                RemoveGameFromServer(gameId);
+            }
+            else
+            {
+                BroadcastOutServerList();
+            }
+
+
+            
+            ////clientsList.Remove(clientId);
+            ////better if go through those games and remove client and then remove game
+            ////todo for later i guess
+            //if (clientGameList.ContainsKey(clientId))
+            //{
+            //    int gameId = clientGameList[clientId];
+
+            //    if (gameClientsList.ContainsKey(gameId))        //has to contain it 
+            //        gameClientsList[gameId].Remove(clientId);
+
+            //    clientGameList.Remove(clientId);
+
+            //    if (gameClientsList[gameId].Count == 0)     //if no one left in the game destroy it
+            //    {
+            //        RemoveGameFromServerAndClients(gameId);
+            //        //this broadcasts its own
+            //    }
+            //    else
+            //    {
+            //        NextTurn(gameId);
+            //        BroadcastOutServerList();
+            //    }
+            //}
+        }
+        public void RemoveGameFromServer(int gameId)
+        {
+            if (Games.ContainsKey(gameId))
+            {
+                foreach (int clietnId in Games[gameId].Players)
                 {
-                    clientGameList.Remove(client);
+                    Players[clietnId].DropGame();
                 }
+                Games.Remove(gameId);
 
                 BroadcastOutServerList();
             }
+            
+            //if (gameClientsList.ContainsKey(gameId))
+            //{
+            //    gameClientsList.Remove(gameId);
+            //    gameTurnList.Remove(gameId);
+            //    gamePlayingList.Remove(gameId);
+            //    gameJoiningActiveGame.Remove(gameId);
+
+            //    foreach (int client in gameClientsList[gameId])
+            //    {
+            //        clientGameList.Remove(client);
+            //    }
+
+            //    BroadcastOutServerList();
+            //}
         }
 
 
@@ -719,10 +724,14 @@ namespace Game_Server
         }
         public void SendServerReponse(string serverResponse)
         {
-            foreach (KeyValuePair<int,NetworkStream> clientId in clientsList)
+            foreach (int clientId in Players.Keys)
             {
-                SendServer(clientId.Key, serverResponse);
+                SendServer(clientId, serverResponse);
             }
+            //foreach (KeyValuePair<int,NetworkStream> clientId in clientsList)
+            //{
+            //    SendServer(clientId.Key, serverResponse);
+            //}
         }
         public void SendServerReponse(string serverResponse, List<int> clientIdList, int clientToExclude)
         {
@@ -735,23 +744,25 @@ namespace Game_Server
         }
         public void SendServer(int clientId, string msg)
         {
-            NetworkStream n = clientsList[clientId];
-            msg += eom; //append EOM marker
-            
-            if (clientIsWebsock[clientId])
-            {
-                Byte[] dataToSend = ServerWebSock.CreateFrameFromString(msg);
-                n.Write(dataToSend, 0, dataToSend.Length);
-                if (allowClientDebugPrint)
-                    Console.WriteLine($"Websock Server: {msg}");
-            }
-            else
-            {
-                Byte[] msgBytes = System.Text.Encoding.UTF8.GetBytes(msg);
-                n.Write(msgBytes, 0, msgBytes.Length);
-                if (allowClientDebugPrint)
-                    Console.WriteLine("{1}: Sent: {0}", msg, Thread.CurrentThread.ManagedThreadId);
-            }
+            Players[clientId].SendToPlayer(msg);
+
+            //NetworkStream n = clientsList[clientId];
+            //msg += eom; //append EOM marker
+
+            //if (clientIsWebsock[clientId])
+            //{
+            //    Byte[] dataToSend = ServerWebSock.CreateFrameFromString(msg);
+            //    n.Write(dataToSend, 0, dataToSend.Length);
+            //    if (allowClientDebugPrint)
+            //        Console.WriteLine($"Websock Server: {msg}");
+            //}
+            //else
+            //{
+            //    Byte[] msgBytes = System.Text.Encoding.UTF8.GetBytes(msg);
+            //    n.Write(msgBytes, 0, msgBytes.Length);
+            //    if (allowClientDebugPrint)
+            //        Console.WriteLine("{1}: Sent: {0}", msg, Thread.CurrentThread.ManagedThreadId);
+            //}
         }
     }
 }

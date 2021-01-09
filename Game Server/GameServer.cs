@@ -4,7 +4,7 @@ using System.Threading;
 
 namespace Game_Server
 {
-    public class Program
+    public class GameServer
     {
         public const string ipAddr = "34.94.134.79";
         public const int port = 11111;
