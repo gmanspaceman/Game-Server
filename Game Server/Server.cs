@@ -197,7 +197,8 @@ namespace Game_Server
 
                                         serverResponse = string.Join(",", "JOINED_GAME",
                                                                             newGame.GameId,
-                                                                            (int)newGame.GameState); //send to player who asked
+                                                                            (int)newGame.GameState,
+                                                                            gameIdToJoin); //send to player who asked
                                         
                                         SendServerReponse(serverResponse, ThisPlayer.ClientId);
                                         BroadcastOutServerList();
