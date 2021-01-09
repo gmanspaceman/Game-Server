@@ -474,7 +474,7 @@ namespace Game_Server
                             {
                                 string serverResponse = string.Join(",", "GAME_UPDATE",
                                                                 Games[gameId].GetTurnPlayerId(),
-                                                                (int)Games[gameId].GameState);
+                                                                Games[gameId].CurrentGameState);
                                 SendServerReponse(serverResponse, Games[gameId].Players);
                             }
                         }
