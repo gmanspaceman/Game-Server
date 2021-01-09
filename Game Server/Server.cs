@@ -572,6 +572,7 @@ namespace Game_Server
                     Console.WriteLine("Client ID Dropped!: {0}", clientID);
                 }
                 //remove clienbt id from list
+                Console.ReadLine();
                 RemoveClientFromServer(clientID);
             }
         }
