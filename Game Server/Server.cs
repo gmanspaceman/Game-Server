@@ -313,14 +313,16 @@ namespace Game_Server
                                 int gameIdToJoin = int.Parse(parseMsg[1]);
 
                                 //If player in a curernt game drop that game
-                                if(ThisPlayer.InGame && ThisPlayer.CurrentGameId != gameIdToJoin)
+                                if (ThisPlayer.CurrentGameId != gameIdToJoin)
                                 {
-                                    RemoveClientFromGames(ThisPlayer.ClientId);
-                                    ThisPlayer.DropGame();
+                                    if (ThisPlayer.InGame)
+                                    {
+                                        RemoveClientFromGames(ThisPlayer.ClientId);
+                                        ThisPlayer.DropGame();
+                                    }
+                                    ThisPlayer.JoinGame(gameIdToJoin);
+                                    Games[gameIdToJoin].AddPlayer(ThisPlayer.ClientId);
                                 }
-                                ThisPlayer.JoinGame(gameIdToJoin);
-                                Games[gameIdToJoin].AddPlayer(ThisPlayer.ClientId);
-
                                 //if (!gameClientsList[gameIdToJoin].Contains(clientID))
                                 //    gameClientsList[gameIdToJoin].Add(clientID);
 
