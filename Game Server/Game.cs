@@ -21,19 +21,16 @@ namespace Game_Server
         public string CurrentGameState { get; set; }
         public GamePhase GameState;
 
-        public Game(int gameId)
+        public Game(int gameId, int clientId)
         {
             Players = new List<int>();
             GameId = gameId;
             CurrentGameState = string.Empty;
-            CurrentPlayerTurnIndex = -1;
+            CurrentPlayerTurnIndex = clientId;
             GameState = GamePhase.PreGame;
         }
         public int GetTurnPlayerId()
         {
-            if (CurrentPlayerTurnIndex == -1)
-                return 0;
-
             return Players[CurrentPlayerTurnIndex];
         }
         public void AddPlayer(int playerIdWantingToJoin)

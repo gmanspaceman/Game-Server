@@ -70,7 +70,8 @@ namespace Game_Server
                 Console.WriteLine("----Client Id: {0} History----", k.Key);
                 foreach (string cmd in k.Value.SentHistory)
                 {
-                    Console.WriteLine(cmd);
+                    
+                    Console.WriteLine(cmd.Contains("MOVE") ? "MOVE..." : cmd);
                 }
                 Console.WriteLine("---------------------------");
             }
@@ -200,7 +201,7 @@ namespace Game_Server
                                 {
                                     if(!Games.ContainsKey(newGameId))
                                     {
-                                        Game newGame = new Game(newGameId);
+                                        Game newGame = new Game(newGameId, ThisPlayer.ClientId);
                                         Games.Add(newGame.GameId, newGame);
 
                                         Games[newGame.GameId].AddPlayer(ThisPlayer.ClientId);
