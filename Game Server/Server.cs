@@ -638,7 +638,7 @@ namespace Game_Server
         }
         public void RemoveClientFromGames(int clientId)
         {
-            if (Players[clientId].InGame)
+            if (Players.ContainsKey(clientId) && Players[clientId].InGame)
             {
                 int gameId = Players[clientId].CurrentGameId;
                 if (Games[gameId].DropPlayer(clientId))
