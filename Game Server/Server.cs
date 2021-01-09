@@ -377,6 +377,8 @@ namespace Game_Server
 
                                 gameId = ThisPlayer.CurrentGameId;
 
+                                if (Games[gameId].GameState != Game.GamePhase.Finished)
+                                    Games[gameId].GameState = Game.GamePhase.Playing;
                                 Games[gameId].CurrentGameState = userData;
                                 Games[gameId].NextTurn();
 
