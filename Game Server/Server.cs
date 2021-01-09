@@ -340,14 +340,14 @@ namespace Game_Server
 
                                         serverResponse = string.Join(",", "JOINED_GAME",
                                                                             (int)Games[gameIdToJoin].GameState,
-                                                                            Games[gameId].GetTurnPlayerId(),
+                                                                            Games[gameIdToJoin].GetTurnPlayerId(),
                                                                             gameIdToJoin);
                                     }
                                     else if (Games[gameIdToJoin].GameState == Game.GamePhase.Playing)
                                     {
                                         serverResponse = string.Join(",", "JOINED_GAME",
                                                                             (int)Games[gameIdToJoin].GameState,
-                                                                            Games[gameId].GetTurnPlayerId(),
+                                                                            Games[gameIdToJoin].GetTurnPlayerId(),
                                                                             gameIdToJoin,
                                                                             Games[gameIdToJoin].CurrentGameState);
                                     }
@@ -355,7 +355,7 @@ namespace Game_Server
                                     {
                                         serverResponse = string.Join(",", "JOINED_GAME",
                                                                             (int)Games[gameIdToJoin].GameState,
-                                                                            Games[gameId].GetTurnPlayerId(),
+                                                                            Games[gameIdToJoin].GetTurnPlayerId(),
                                                                             gameIdToJoin);
                                     }
                                     SendServerReponse(serverResponse, ThisPlayer.ClientId);
