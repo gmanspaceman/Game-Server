@@ -24,9 +24,10 @@ namespace Game_Server
         public Game(int gameId, int clientId)
         {
             Players = new List<int>();
+            Players.Add(clientId);
             GameId = gameId;
             CurrentGameState = string.Empty;
-            CurrentPlayerTurnIndex = clientId;
+            CurrentPlayerTurnIndex = 0;
             GameState = GamePhase.PreGame;
         }
         public int GetTurnPlayerId()
@@ -48,24 +49,31 @@ namespace Game_Server
                 CurrentPlayerTurnIndex = 0; //force it to be their turn
             }
         }
-        public bool DropPlayer(int playerIdWantingToDrop)
+        public void DropPlayer(int playerIdWantingToDrop)
         {
-            if (Players.Contains(CurrentPlayerTurnIndex))
-            {
-                if (Players[CurrentPlayerTurnIndex] == playerIdWantingToDrop)
-                {
-                    CurrentPlayerTurnIndex = (CurrentPlayerTurnIndex + 1) % Players.Count;
-                    //auto notify people of turn change
-                    if (Players.Contains(playerIdWantingToDrop))
-                        Players.Remove(playerIdWantingToDrop);
-
-                    return true;
-                }
-            }
-            if(Players.Contains(playerIdWantingToDrop))
+            if (Players.Contains(playerIdWantingToDrop))
                 Players.Remove(playerIdWantingToDrop);
+
+            if (CurrentPlayerTurnIndex >= Players.Count)
+                CurrentPlayerTurnIndex = 0;
+
+            //if (Players.Contains(CurrentPlayerTurnIndex))
+            //{
+            //    if (Players[CurrentPlayerTurnIndex] == playerIdWantingToDrop)
+            //    {
+            //        NextTurn();
+
+            //        //auto notify people of turn change
+            //        if (Players.Contains(playerIdWantingToDrop))
+            //            Players.Remove(playerIdWantingToDrop);
+
+            //        return true;
+            //    }
+            //}
+            //if(Players.Contains(playerIdWantingToDrop))
+            //    Players.Remove(playerIdWantingToDrop);
            
-            return false;
+            //return false;
         }
         public void NextTurn()
         {

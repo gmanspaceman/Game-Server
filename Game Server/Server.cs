@@ -422,28 +422,6 @@ namespace Game_Server
             SendServerReponse(serverResponse);
         }
 
-        //public void NextTurn(int gameId)
-        //{
-        //    if (gameClientsList.ContainsKey(gameId))
-        //    {
-        //        gameTurnList[gameId] = (gameTurnList[gameId] + 1) % gameClientsList[gameId].Count; //icnrement whos turn it is
-
-        //        //okay we will inform the next player
-        //        int playerNumber = gameTurnList[gameId];
-        //        int matchingClientid = gameClientsList[gameId][playerNumber];
-
-        //        //Thread.Sleep(125);
-        //        SendServerReponse("YOUR_TURN", matchingClientid);
-                
-        //        if (allowClientDebugPrint)
-        //            Console.WriteLine("Sent YOUR_TURN to {0}", matchingClientid);
-        //    }
-        //}
-
-        //public void GetGameFromPlayerTurn(int gameId)
-        //{
-        //    SendServerReponse("GET_MIDGAME", gameClientsList[gameId][gameTurnList[gameId]]);
-        //}
         public void RemoveClientFromServer(int clientId)
         {
             RemoveClientFromGames(clientId);
@@ -451,13 +429,7 @@ namespace Game_Server
             if (Players.ContainsKey(clientId))
                 Players.Remove(clientId);
 
-            //clientsList.Remove(clientId);
-            //clientCommandHistory.Remove(clientId);
-            //clientIsWebsock.Remove(clientId);
-            //if (clientNames.ContainsKey(clientId))
-            //    clientNames.Remove(clientId);
 
-            //RemoveClientFromGames(clientId);
         }
         public void RemoveClientFromGames(int clientId)
         {
@@ -468,15 +440,13 @@ namespace Game_Server
                     int gameId = Players[clientId].CurrentGameId;
                     if (Games.ContainsKey(gameId))
                     {
-                        if (Games[gameId].DropPlayer(clientId))
+                        Games[gameId].DropPlayer(clientId);
+                        if (Games[gameId].Players.Count != 0)
                         {
-                            if (Games[gameId].Players.Count != 0)
-                            {
-                                string serverResponse = string.Join(",", "GAME_UPDATE",
-                                                                Games[gameId].GetTurnPlayerId(),
-                                                                Games[gameId].CurrentGameState);
-                                SendServerReponse(serverResponse, Games[gameId].Players);
-                            }
+                            string serverResponse = string.Join(",", "GAME_UPDATE",
+                                                            Games[gameId].GetTurnPlayerId(),
+                                                            Games[gameId].CurrentGameState);
+                            SendServerReponse(serverResponse, Games[gameId].Players);
                         }
                     }
 
@@ -490,31 +460,6 @@ namespace Game_Server
                     }
                 }
             }
-
-            
-            ////clientsList.Remove(clientId);
-            ////better if go through those games and remove client and then remove game
-            ////todo for later i guess
-            //if (clientGameList.ContainsKey(clientId))
-            //{
-            //    int gameId = clientGameList[clientId];
-
-            //    if (gameClientsList.ContainsKey(gameId))        //has to contain it 
-            //        gameClientsList[gameId].Remove(clientId);
-
-            //    clientGameList.Remove(clientId);
-
-            //    if (gameClientsList[gameId].Count == 0)     //if no one left in the game destroy it
-            //    {
-            //        RemoveGameFromServerAndClients(gameId);
-            //        //this broadcasts its own
-            //    }
-            //    else
-            //    {
-            //        NextTurn(gameId);
-            //        BroadcastOutServerList();
-            //    }
-            //}
         }
         public void RemoveGameFromServer(int gameId)
         {
@@ -528,21 +473,6 @@ namespace Game_Server
 
                 BroadcastOutServerList();
             }
-            
-            //if (gameClientsList.ContainsKey(gameId))
-            //{
-            //    gameClientsList.Remove(gameId);
-            //    gameTurnList.Remove(gameId);
-            //    gamePlayingList.Remove(gameId);
-            //    gameJoiningActiveGame.Remove(gameId);
-
-            //    foreach (int client in gameClientsList[gameId])
-            //    {
-            //        clientGameList.Remove(client);
-            //    }
-
-            //    BroadcastOutServerList();
-            //}
         }
 
 
