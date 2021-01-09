@@ -488,18 +488,8 @@ namespace Game_Server
                                 if (allowClientDebugPrint) 
                                     Console.WriteLine("Client {0} dropped their game", clientID);
 
-                               if(Games[ThisPlayer.CurrentGameId].DropPlayer(ThisPlayer.ClientId))
-                                {
-                                    serverResponse = string.Join(",", "GAME_UPDATE",
-                                                                        Games[gameId].GetTurnPlayerId(),
-                                                                        (int)Games[gameId].GameState);
+                                RemoveClientFromGames(ThisPlayer.ClientId);
 
-                                    SendServerReponse(serverResponse, Games[gameId].Players);
-                                }
-                                ThisPlayer.DropGame();
-
-                                
-                                
 
                                 ////can use gameId in msg or look it up based on player id,
                                 ////lets use the message value for now;
@@ -507,7 +497,7 @@ namespace Game_Server
                                 //RemoveClientFromGames(clientID);
 
                                 //NextTurn(gameId);
-                                BroadcastOutServerList();
+                                //BroadcastOutServerList();
                                 break;
                             case "PING":
 
