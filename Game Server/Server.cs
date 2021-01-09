@@ -322,45 +322,45 @@ namespace Game_Server
                                     }
                                     ThisPlayer.JoinGame(gameIdToJoin);
                                     Games[gameIdToJoin].AddPlayer(ThisPlayer.ClientId);
-                                }
-                                //if (!gameClientsList[gameIdToJoin].Contains(clientID))
-                                //    gameClientsList[gameIdToJoin].Add(clientID);
+                                
+                                    //if (!gameClientsList[gameIdToJoin].Contains(clientID))
+                                    //    gameClientsList[gameIdToJoin].Add(clientID);
 
-                                //if (!clientGameList.ContainsKey(clientID))
-                                //{
-                                //    clientGameList.Add(clientID, gameIdToJoin);
-                                //}
-                                //else
-                                //{
-                                //    clientGameList[clientID] = gameIdToJoin;
-                                //}
+                                    //if (!clientGameList.ContainsKey(clientID))
+                                    //{
+                                    //    clientGameList.Add(clientID, gameIdToJoin);
+                                    //}
+                                    //else
+                                    //{
+                                    //    clientGameList[clientID] = gameIdToJoin;
+                                    //}
 
-                                if (Games[gameIdToJoin].GameState == Game.GamePhase.PreGame)
-                                {
+                                    if (Games[gameIdToJoin].GameState == Game.GamePhase.PreGame)
+                                    {
 
-                                    serverResponse = string.Join(",", "JOINED_GAME",
-                                                                        (int)Games[gameIdToJoin].GameState,
-                                                                        Games[gameId].GetTurnPlayerId(),
-                                                                        gameIdToJoin);
+                                        serverResponse = string.Join(",", "JOINED_GAME",
+                                                                            (int)Games[gameIdToJoin].GameState,
+                                                                            Games[gameId].GetTurnPlayerId(),
+                                                                            gameIdToJoin);
+                                    }
+                                    else if (Games[gameIdToJoin].GameState == Game.GamePhase.Playing)
+                                    {
+                                        serverResponse = string.Join(",", "JOINED_GAME",
+                                                                            (int)Games[gameIdToJoin].GameState,
+                                                                            Games[gameId].GetTurnPlayerId(),
+                                                                            gameIdToJoin,
+                                                                            Games[gameIdToJoin].CurrentGameState);
+                                    }
+                                    else if (Games[gameIdToJoin].GameState == Game.GamePhase.Finished) //dont know what i want to do here
+                                    {
+                                        serverResponse = string.Join(",", "JOINED_GAME",
+                                                                            (int)Games[gameIdToJoin].GameState,
+                                                                            Games[gameId].GetTurnPlayerId(),
+                                                                            gameIdToJoin);
+                                    }
+                                    SendServerReponse(serverResponse, ThisPlayer.ClientId);
+                                    BroadcastOutServerList();
                                 }
-                                else if (Games[gameIdToJoin].GameState == Game.GamePhase.Playing)
-                                {
-                                    serverResponse = string.Join(",", "JOINED_GAME",
-                                                                        (int)Games[gameIdToJoin].GameState,
-                                                                        Games[gameId].GetTurnPlayerId(),
-                                                                        gameIdToJoin,
-                                                                        Games[gameIdToJoin].CurrentGameState);
-                                }
-                                else if (Games[gameIdToJoin].GameState == Game.GamePhase.Finished) //dont know what i want to do here
-                                {
-                                    serverResponse = string.Join(",", "JOINED_GAME",
-                                                                        (int)Games[gameIdToJoin].GameState,
-                                                                        Games[gameId].GetTurnPlayerId(),
-                                                                        gameIdToJoin);
-                                }
-                                SendServerReponse(serverResponse, ThisPlayer.ClientId);
-                                BroadcastOutServerList();
-
                                 ////if the game is already active
                                 ////added to midgame update queue and request from active player
                                 //if (gamePlayingList[gameIdToJoin])
@@ -369,7 +369,7 @@ namespace Game_Server
                                 //    GetGameFromPlayerTurn(gameIdToJoin);
                                 //}
 
-                                
+
                                 break;
                             case "MOVE":
                                 if (allowClientDebugPrint)
