@@ -19,9 +19,13 @@ namespace Game_Server
         public int CurrentPlayerTurnIndex;
         public int GameId;
         public string CurrentGameState { get; set; }
+        public int col { get; set; }
+        public int row { get; set; }
+        public int mines { get; set; }
+
         public GamePhase GameState;
 
-        public Game(int gameId, int clientId)
+        public Game(int gameId, int clientId, int _col, int _row, int _mines)
         {
             Players = new List<int>();
             Players.Add(clientId);
@@ -29,6 +33,9 @@ namespace Game_Server
             CurrentGameState = string.Empty;
             CurrentPlayerTurnIndex = 0;
             GameState = GamePhase.PreGame;
+            col = _col;
+            row = _row;
+            mines = _mines;
         }
         public int GetTurnPlayerId()
         {

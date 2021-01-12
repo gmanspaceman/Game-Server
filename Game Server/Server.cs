@@ -201,7 +201,11 @@ namespace Game_Server
                                 {
                                     if(!Games.ContainsKey(newGameId))
                                     {
-                                        Game newGame = new Game(newGameId, ThisPlayer.ClientId);
+                                        int col = int.Parse(parseMsg[1]);
+                                        int row = int.Parse(parseMsg[2]);
+                                        int mines = int.Parse(parseMsg[3]);
+
+                                        Game newGame = new Game(newGameId, ThisPlayer.ClientId, col, row, mines);
                                         Games.Add(newGame.GameId, newGame);
 
                                         Games[newGame.GameId].AddPlayer(ThisPlayer.ClientId);
