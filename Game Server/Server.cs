@@ -273,6 +273,7 @@ namespace Game_Server
                                         serverResponse = string.Join(",", "JOINED_GAME",
                                                                             (int)Games[gameIdToJoin].GameState,
                                                                             Games[gameIdToJoin].GetTurnPlayerId(),
+                                                                            Players[Games[gameIdToJoin].GetTurnPlayerId()].GetClientName(),
                                                                             gameIdToJoin);
                                     }
                                     else if (Games[gameIdToJoin].GameState == Game.GamePhase.Playing)
@@ -280,6 +281,7 @@ namespace Game_Server
                                         serverResponse = string.Join(",", "JOINED_GAME",
                                                                             (int)Games[gameIdToJoin].GameState,
                                                                             Games[gameIdToJoin].GetTurnPlayerId(),
+                                                                            Players[Games[gameIdToJoin].GetTurnPlayerId()].GetClientName(),
                                                                             gameIdToJoin,
                                                                             Games[gameIdToJoin].CurrentGameState);
                                     }
@@ -288,6 +290,7 @@ namespace Game_Server
                                         serverResponse = string.Join(",", "JOINED_GAME",
                                                                             (int)Games[gameIdToJoin].GameState,
                                                                             Games[gameIdToJoin].GetTurnPlayerId(),
+                                                                            Players[Games[gameIdToJoin].GetTurnPlayerId()].GetClientName(),
                                                                             gameIdToJoin);
                                     }
                                     SendServerReponse(serverResponse, ThisPlayer.ClientId);
@@ -310,6 +313,7 @@ namespace Game_Server
                                 //sendupdate to everyone
                                 serverResponse = string.Join(",", "GAME_UPDATE",
                                                                         Games[gameId].GetTurnPlayerId(),
+                                                                        Players[Games[gameId].GetTurnPlayerId()].GetClientName(),
                                                                         Games[gameId].CurrentGameState);
 
                                 SendServerReponse(serverResponse, Games[gameId].Players); 
@@ -323,7 +327,8 @@ namespace Game_Server
 
                                 serverResponse = string.Join(",", "RESTART",
                                                                         ThisPlayer.CurrentGameId, 
-                                                                        Games[ThisPlayer.CurrentGameId].GetTurnPlayerId());
+                                                                        Games[ThisPlayer.CurrentGameId].GetTurnPlayerId(),
+                                                                        Players[Games[ThisPlayer.CurrentGameId].GetTurnPlayerId()].GetClientName());
 
                                 SendServerReponse(serverResponse, Games[ThisPlayer.CurrentGameId].Players);
 
