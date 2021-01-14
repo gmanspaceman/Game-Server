@@ -214,6 +214,7 @@ namespace Game_Server
                                         serverResponse = string.Join(",", "JOINED_GAME",
                                                                             (int)Games[newGame.GameId].GameState,
                                                                             Games[newGame.GameId].GetTurnPlayerId(),
+                                                                            Players[Games[newGame.GameId].GetTurnPlayerId()].GetClientName(),
                                                                             newGame.GameId);
 
                                         SendServerReponse(serverResponse, ThisPlayer.ClientId);
