@@ -300,23 +300,23 @@ namespace Game_Server
 
                                 break;
                             case "MOVE":
-                                //if (allowClientDebugPrint)
+                                if (allowClientDebugPrint)
                                     Console.WriteLine("Client {0} made a move: ", clientID);
 
                                 gameId = ThisPlayer.CurrentGameId;
-                                Console.WriteLine(gameId);
+                                //Console.WriteLine(gameId);
                                 if (Games[gameId].GameState != Game.GamePhase.Finished)
                                     Games[gameId].GameState = Game.GamePhase.Playing;
 
                                 Games[gameId].CurrentGameState = userData;
                                 Games[gameId].NextTurn();
-                                Console.WriteLine("here1");
+                                //Console.WriteLine("here1");
                                 //sendupdate to everyone
                                 serverResponse = string.Join(",", "GAME_UPDATE",
                                                                         Games[gameId].GetTurnPlayerId(),
                                                                         Players[Games[gameId].GetTurnPlayerId()].GetClientName(),
                                                                         Games[gameId].CurrentGameState);
-                                Console.WriteLine(serverResponse);
+                                //Console.WriteLine(serverResponse);
                                 SendServerReponse(serverResponse, Games[gameId].Players); 
                                 break;
                             case "RESTART":

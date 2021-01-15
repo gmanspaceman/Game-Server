@@ -113,7 +113,7 @@ namespace Game_Server
                 return;
             }
 
-            Byte[] buffer = new Byte[4 * 1024];
+            Byte[] buffer = new Byte[5 * 1024];
             string data = _CarryData;
             _CarryData = string.Empty;
             int recvBuffer = _Stream.Read(buffer, 0, buffer.Length);
