@@ -215,7 +215,8 @@ namespace Game_Server
                                                                             (int)Games[newGame.GameId].GameState,
                                                                             Games[newGame.GameId].GetTurnPlayerId(),
                                                                             Players[Games[newGame.GameId].GetTurnPlayerId()].GetClientName(),
-                                                                            newGame.GameId);
+                                                                            newGame.GameId,
+                                                                            Games[newGame.GameId].CurrentGameState);
 
                                         SendServerReponse(serverResponse, ThisPlayer.ClientId);
                                         BroadcastOutServerList();
