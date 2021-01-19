@@ -275,7 +275,8 @@ namespace Game_Server
                                                                             (int)Games[gameIdToJoin].GameState,
                                                                             Games[gameIdToJoin].GetTurnPlayerId(),
                                                                             Players[Games[gameIdToJoin].GetTurnPlayerId()].GetClientName(),
-                                                                            gameIdToJoin);
+                                                                            gameIdToJoin,
+                                                                            Games[gameIdToJoin].CurrentGameState);
                                     }
                                     else if (Games[gameIdToJoin].GameState == Game.GamePhase.Playing)
                                     {
@@ -292,7 +293,8 @@ namespace Game_Server
                                                                             (int)Games[gameIdToJoin].GameState,
                                                                             Games[gameIdToJoin].GetTurnPlayerId(),
                                                                             Players[Games[gameIdToJoin].GetTurnPlayerId()].GetClientName(),
-                                                                            gameIdToJoin);
+                                                                            gameIdToJoin,
+                                                                            Games[gameIdToJoin].CurrentGameState);
                                     }
                                     SendServerReponse(serverResponse, ThisPlayer.ClientId);
                                     BroadcastOutServerList();
@@ -423,7 +425,9 @@ namespace Game_Server
             string serverResponse = "GAME_LIST"; //Send to both i guess
             foreach (KeyValuePair<int, Game> game in Games)
             {
-                serverResponse = string.Join(",", serverResponse, game.Key.ToString(), game.Value.Players.Count.ToString());
+                serverResponse = string.Join(",", serverResponse, 
+                                                    game.Key.ToString(), 
+                                                    game.Value.Players.Count.ToString());
             }
             //foreach (KeyValuePair<int, List<int>> game in gameClientsList)
             //{

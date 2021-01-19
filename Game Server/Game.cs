@@ -36,6 +36,20 @@ namespace Game_Server
             col = _col;
             row = _row;
             mines = _mines;
+
+            CurrentGameState = "MOVE";
+            for (int c = 0; c < col; c++)
+            {
+                for (int r = 0; r < row; r++)
+                {
+                    CurrentGameState = string.Join(",", 0
+                                                        ,0
+                                                        ,0
+                                                        ,0
+                                                        ,0);
+                }
+            }
+            CurrentGameState = string.Join(",", 999);
         }
         public int GetTurnPlayerId()
         {
