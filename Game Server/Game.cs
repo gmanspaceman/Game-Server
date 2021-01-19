@@ -44,7 +44,7 @@ namespace Game_Server
                 {
                     CurrentGameState = string.Join(",", CurrentGameState
                                                         ,"0"
-                                                        ,"0
+                                                        ,"0"
                                                         ,"0"
                                                         ,"0"
                                                         ,"0");
