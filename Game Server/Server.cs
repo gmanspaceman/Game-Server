@@ -215,7 +215,10 @@ namespace Game_Server
                                                                             (int)Games[newGame.GameId].GameState,
                                                                             Games[newGame.GameId].GetTurnPlayerId(),
                                                                             Players[Games[newGame.GameId].GetTurnPlayerId()].GetClientName(),
-                                                                            newGame.GameId,
+                                                                            newGame.GameId, 
+                                                                            col,
+                                                                            row,
+                                                                            mines,
                                                                             Games[newGame.GameId].CurrentGameState);
 
                                         SendServerReponse(serverResponse, ThisPlayer.ClientId);
@@ -277,6 +280,9 @@ namespace Game_Server
                                                                             Games[gameIdToJoin].GetTurnPlayerId(),
                                                                             Players[Games[gameIdToJoin].GetTurnPlayerId()].GetClientName(),
                                                                             gameIdToJoin,
+                                                                            Games[gameIdToJoin].col,
+                                                                            Games[gameIdToJoin].row,
+                                                                            Games[gameIdToJoin].mines,
                                                                             Games[gameIdToJoin].CurrentGameState);
                                     }
                                     else if (Games[gameIdToJoin].GameState == Game.GamePhase.Playing)
@@ -286,6 +292,9 @@ namespace Game_Server
                                                                             Games[gameIdToJoin].GetTurnPlayerId(),
                                                                             Players[Games[gameIdToJoin].GetTurnPlayerId()].GetClientName(),
                                                                             gameIdToJoin,
+                                                                            Games[gameIdToJoin].col,
+                                                                            Games[gameIdToJoin].row,
+                                                                            Games[gameIdToJoin].mines,
                                                                             Games[gameIdToJoin].CurrentGameState);
                                     }
                                     else if (Games[gameIdToJoin].GameState == Game.GamePhase.Finished) //dont know what i want to do here
@@ -295,6 +304,9 @@ namespace Game_Server
                                                                             Games[gameIdToJoin].GetTurnPlayerId(),
                                                                             Players[Games[gameIdToJoin].GetTurnPlayerId()].GetClientName(),
                                                                             gameIdToJoin,
+                                                                            Games[gameIdToJoin].col,
+                                                                            Games[gameIdToJoin].row,
+                                                                            Games[gameIdToJoin].mines,
                                                                             Games[gameIdToJoin].CurrentGameState);
                                     }
                                     SendServerReponse(serverResponse, ThisPlayer.ClientId);
