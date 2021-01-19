@@ -42,7 +42,8 @@ namespace Game_Server
             {
                 for (int r = 0; r < row; r++)
                 {
-                    CurrentGameState = string.Join(",", 0
+                    CurrentGameState = string.Join(",", CurrentGameState
+                                                        ,0
                                                         ,0
                                                         ,0
                                                         ,0
