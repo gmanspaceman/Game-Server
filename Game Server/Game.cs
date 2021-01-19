@@ -50,7 +50,8 @@ namespace Game_Server
                                                         ,"0");
                 }
             }
-            CurrentGameState = string.Join(",", 999);
+            CurrentGameState = string.Join(",", CurrentGameState
+                                                ,999);
         }
         public int GetTurnPlayerId()
         {
