@@ -334,6 +334,40 @@ namespace Game_Server
                                 //Console.WriteLine(serverResponse);
                                 SendServerReponse(serverResponse, Games[gameId].Players); 
                                 break;
+                            case "PASS":
+                                if (allowClientDebugPrint)
+                                    Console.WriteLine("Client {0} Passed: ", clientID);
+
+                                gameId = ThisPlayer.CurrentGameId;
+                                Games[gameId].NextTurn();
+                                //Console.WriteLine("here1");
+                                //sendupdate to everyone
+                                serverResponse = string.Join(",", "GAME_UPDATE",
+                                                                        Games[gameId].GetTurnPlayerId(),
+                                                                        Players[Games[gameId].GetTurnPlayerId()].GetClientName(),
+                                                                        Games[gameId].CurrentGameState);
+                                //Console.WriteLine(serverResponse);
+                                SendServerReponse(serverResponse, Games[gameId].Players);
+                                break;
+                            case "TURN_LIST":
+                                if (allowClientDebugPrint)
+                                    Console.WriteLine("Client {0} wants the turn list: ", clientID);
+
+                                gameId = ThisPlayer.CurrentGameId;
+
+                                serverResponse = "TURN_LIST";
+                                for (int ii = 0; ii < Games[gameId].Players.Count; ii++)
+                                {
+                                    int index = (Games[gameId].CurrentPlayerTurnIndex + ii) % Games[gameId].Players.Count;
+                                    
+                                    serverResponse = string.Join(",", serverResponse,
+                                                                       Players[Games[gameId].Players[index]].GetClientName());
+                                }
+
+                                
+                                //Console.WriteLine(serverResponse);
+                                SendServerReponse(serverResponse, clientID);
+                                break;
                             case "RESTART":
 
                                 if (allowClientDebugPrint)
