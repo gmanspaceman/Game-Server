@@ -507,9 +507,15 @@ namespace Game_Server
                         Games[gameId].DropPlayer(clientId);
                         if (Games[gameId].Players.Count != 0)
                         {
+                            //string serverResponse = string.Join(",", "GAME_UPDATE",
+                            //                                Games[gameId].GetTurnPlayerId(),
+                            //                                Games[gameId].CurrentGameState);
+
                             string serverResponse = string.Join(",", "GAME_UPDATE",
-                                                            Games[gameId].GetTurnPlayerId(),
-                                                            Games[gameId].CurrentGameState);
+                                                                        Games[gameId].GetTurnPlayerId(),
+                                                                        Players[Games[gameId].GetTurnPlayerId()].GetClientName(),
+                                                                        Games[gameId].CurrentGameState);
+
                             SendServerReponse(serverResponse, Games[gameId].Players);
                         }
                     }
