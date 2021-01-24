@@ -410,10 +410,10 @@ namespace Game_Server
 
                                 SendServerReponse("PONG", ThisPlayer.ClientId);
 
-                                if (ThisPlayer.InGame)
-                                {
-                                    SendGameInfo(ThisPlayer.CurrentGameId, ThisPlayer.ClientId);
-                                }
+                                //if (ThisPlayer.InGame)
+                                //{
+                                //    SendGameInfo(ThisPlayer.CurrentGameId, ThisPlayer.ClientId);
+                                //}
 
                                 break;
                             default:
