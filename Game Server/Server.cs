@@ -35,7 +35,7 @@ namespace Game_Server
 
         public const string eom = "<EOM>";
 
-        bool allowClientDebugPrint = false;
+        bool allowClientDebugPrint = true;
 
         public Server(string ip, int port)
         {
@@ -53,7 +53,7 @@ namespace Game_Server
         {
             while (true)
             {
-                Console.Clear();
+                //Console.Clear();
                 PrintServerState();
                 PrintUserHistory();
                 for (int i = 0; i < 10; i++)
