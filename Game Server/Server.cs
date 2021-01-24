@@ -233,9 +233,11 @@ namespace Game_Server
                                 if (allowClientDebugPrint)
                                     Console.WriteLine("Client {0} wants a List of the Games", clientID);
 
+                                serverResponse = "GAME_LIST";
+
                                 foreach (KeyValuePair<int, Game> game in Games)
                                 {
-                                    serverResponse = string.Join(",", "GAME_LIST", 
+                                    serverResponse = string.Join(",", serverResponse, 
                                                                         game.Key.ToString(), 
                                                                         game.Value.Players.Count());
                                 }

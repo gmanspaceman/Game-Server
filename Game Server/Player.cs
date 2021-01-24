@@ -175,7 +175,7 @@ namespace Game_Server
             {
                 _CarryData = data;
             }
-            Console.WriteLine("Carrydate: " + _CarryData);
+            //Console.WriteLine("Carrydate: " + _CarryData);
         }
         public void SendToPlayer(string msgToSend)
         {
