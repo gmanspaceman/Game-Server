@@ -122,7 +122,7 @@ namespace Game_Server
             if (TypeOfConnection == ConnectionType.Tcp)
             {
                 data += Encoding.UTF8.GetString(buffer, 0, recvBuffer);
-
+                Console.WriteLine("tcp: " + data);
                 if (new Regex("^GET[^_]").IsMatch(data))
                 {
                     Byte[] HandshakeResponse = ServerWebSock.ReplyToGETHandshake(data);
@@ -142,6 +142,7 @@ namespace Game_Server
                 {
                     Byte[] receivedPayload = ServerWebSock.ParsePayloadFromFrame(buffer);
                     data += Encoding.UTF8.GetString(receivedPayload);
+                    Console.WriteLine("sock: " + data);
                 }
             }
 
